@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "Time": {
+      "command": "python",
+      "args": [
+        "-m",
+        "mcp_server_time",
+        "--local-timezone=America/New_York"
+      ],
+      "alwaysAllow": [
+        "get_current_time",
+        "convert_time"
+      ],
+      "disabled": false
+    }
+  }
+}
