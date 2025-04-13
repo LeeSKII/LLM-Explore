@@ -8,7 +8,7 @@ api_key = os.getenv("API_KEY")
 base_url = os.getenv("API_BASE_URL")
 
 
-def chat_with_llm(message:List,api_key:str,base_url:str,model_name:str='google/gemini-2.5-pro-exp-03-25:free'):
+def chat_with_llm(message:List,api_key:str,base_url:str,model_name:str='google/gemini-2.5-pro-exp-03-25:free',temperature:float=0.9):
     client = OpenAI(
         base_url=base_url,
         api_key=api_key,
@@ -16,7 +16,8 @@ def chat_with_llm(message:List,api_key:str,base_url:str,model_name:str='google/g
     try:
         completion = client.chat.completions.create(
             model=model_name,
-            messages=message
+            messages=message,
+            temperature=temperature,
         )
         return completion.choices[0].message.content
     except Exception as e:
