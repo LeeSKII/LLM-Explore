@@ -510,7 +510,7 @@ if __name__ == '__main__':
     # client.weather_rainy_forecast_minutes('116.41,39.92')
     # client.gird_weather_now('116.41,39.92')
     # client.gird_weather_hourly_forecast('116.41,39.92')
-    client.weather_indices('116.41212,39.93222','1')
+    client.weather_indices('28.21304,112.91159','1')
     # client.air_quality('39.92','116.41')
     # client.air_quality_hourly_forecast('39.92','116.41')
     # client.air_quality_daily_forecast('39.92','116.41')
