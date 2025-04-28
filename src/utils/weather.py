@@ -3,7 +3,17 @@ import jwt
 import httpx
 import re
 
-class WeatherAPI:
+class BaseAgent:
+    def __init__(self,is_debug=True):
+        self.is_debug = is_debug
+    
+    def ask_followup_question(self,question,follow_up):
+        return {'question': question, 'follow_up': follow_up}
+    
+    def attempt_completion(self,result):
+        return {'status': 'completed','result': result}
+
+class WeatherAPI(BaseAgent):
     def __init__(self,is_debug=True):
         self.is_debug = is_debug
         self.private_key = """-----BEGIN PRIVATE KEY-----
@@ -15,7 +25,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         self.token = self.get_weather_jwt()
 
     def format_location(self,location):
-        # 正则表达式校验：匹配 "数字,数字" 格式（可以是浮点数或整数）
+        # 正则表达式校验：匹配 "数字,数字" 经纬度格式（可以是浮点数或整数）
         pattern = r'^-?\d+(\.\d+)?,-?\d+(\.\d+)?$'
         
         if not re.fullmatch(pattern, location):
@@ -175,7 +185,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         if not forecast_days:
             forecast_days = 3
         else:
-            format_days = int(forecast_days)
+            forecast_days = int(forecast_days)
         path = '/v7/weather/'
         if forecast_days == 3:
             path += '3d'
@@ -188,7 +198,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         elif forecast_days == 30:
             path += '30d'
         else:
-            return {'status': 'error','message': '请求weather_daily_forecast失败,forecast_days参数错误'}
+            return {'status': 'error','message': '请求weather_daily_forecast失败,forecast_days参数错误,请选择枚举:3|7|10|15|30'}
         url = f'{self.api_host}{path}?location={location}'
         headers={"Authorization":f"Bearer {self.token}"}
         try:
@@ -221,7 +231,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         elif hours == 168:
             path += '168h'
         else:
-            return {'status': 'error','message': '请求weather_hourly_forecast失败,hours参数错误'}
+            return {'status': 'error','message': '请求weather_hourly_forecast失败,hours参数错误,请选择枚举:24|72|168'}
         url = f'{self.api_host}{path}?location={location}'
         headers={"Authorization":f"Bearer {self.token}"}
         try:
@@ -301,7 +311,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         elif forecast_days == 30:
             path += '30d'
         else:
-            path += '3d'
+            return {'status': 'error','message': '请求gird_weather_forecast失败,forecast_days参数错误,请选择枚举:3|7|10|15|30'}
         url = f'{self.api_host}{path}?location={location}'
         headers={"Authorization":f"Bearer {self.token}"}
         try:
@@ -334,7 +344,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         elif hours == 168:
             path += '168h'
         else:
-            path += '24h'
+            return {'status': 'error','message': '请求gird_weather_hourly_forecast失败,hours参数错误,请选择枚举:24|72|168'}
         url = f'{self.api_host}{path}?location={location}'
         headers={"Authorization":f"Bearer {self.token}"}
         try:
@@ -479,7 +489,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
             print(f"Unexpected error: {e}")
             return {'status': 'error','message': '请求weather_history失败'}
         
-    def airquality_history(self,location,date):
+    def air_quality_history(self,location,date):
         '''
         获取最近10天的中国空气质量历史再分析数据。
 
@@ -497,7 +507,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
             return response.json()
         except Exception as e:
             print(f"Unexpected error: {e}")
-            return {'status': 'error','message': '请求airquality_history失败'}
+            return {'status': 'error','message': '请求air_quality_history失败'}
 
 if __name__ == '__main__':
     client = WeatherAPI()
@@ -509,8 +519,9 @@ if __name__ == '__main__':
     # client.city_weather_hourly_forecast('101010100')
     # client.weather_rainy_forecast_minutes('116.41,39.92')
     # client.gird_weather_now('116.41,39.92')
+    client.gird_weather_forecast('112.91,28.21','30')
     # client.gird_weather_hourly_forecast('116.41,39.92')
-    client.weather_indices('28.21304,112.91159','1')
+    # client.weather_indices('28.21304,112.91159','1')
     # client.air_quality('39.92','116.41')
     # client.air_quality_hourly_forecast('39.92','116.41')
     # client.air_quality_daily_forecast('39.92','116.41')
