@@ -8,7 +8,7 @@ class BaseAgent:
         self.is_debug = is_debug
     
     def ask_followup_question(self,question,follow_up):
-        return {'question': question, 'follow_up': follow_up}
+        return {'status': 'completed','question': question, 'follow_up': follow_up}
     
     def attempt_completion(self,result):
         return {'status': 'completed','result': result}
@@ -87,14 +87,14 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
             print(f"Unexpected error: {e}")
             return {'status': 'error','message': '请求city_lookup失败'}
     
-    def top_cities(self,top=None):
+    def top_cities(self,number=None):
         '''查找热门城市'''
-        if not top:
-            top = 10
+        if not number:
+            number = 10
         else:
-            top = int(top)
+            number = int(number)
         path = '/geo/v2/city/top'
-        url = f'{self.api_host}{path}?range=cn&number={top}'
+        url = f'{self.api_host}{path}?range=cn&number={number}'
         # 发送GET请求
         headers={"Authorization":f"Bearer {self.token}"}
         try:
@@ -304,14 +304,8 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
             path += '3d'
         elif forecast_days == 7:
             path += '7d'
-        elif forecast_days == 10:
-            path += '10d'
-        elif forecast_days == 15:
-            path += '15d'
-        elif forecast_days == 30:
-            path += '30d'
         else:
-            return {'status': 'error','message': '请求gird_weather_forecast失败,forecast_days参数错误,请选择枚举:3|7|10|15|30'}
+            return {'status': 'error','message': '请求gird_weather_forecast失败,forecast_days参数错误,请选择枚举:3|7'}
         url = f'{self.api_host}{path}?location={location}'
         headers={"Authorization":f"Bearer {self.token}"}
         try:
@@ -341,10 +335,8 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
             path += '24h'
         elif hours == 72:
             path += '72h'
-        elif hours == 168:
-            path += '168h'
         else:
-            return {'status': 'error','message': '请求gird_weather_hourly_forecast失败,hours参数错误,请选择枚举:24|72|168'}
+            return {'status': 'error','message': '请求gird_weather_hourly_forecast失败,hours参数错误,请选择枚举:24|72'}
         url = f'{self.api_host}{path}?location={location}'
         headers={"Authorization":f"Bearer {self.token}"}
         try:
@@ -374,7 +366,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         elif forecast_days == 3:
             path += '3d'
         else:
-            path += '1d'
+            return {'status': 'error','message': '请求weather_indices失败,forecast_days参数错误,请选择枚举:1|3'}
         # TODO: 后续可增加type参数，可选1,2,3,4
         url = f'{self.api_host}{path}?location={location}&type=0'
         headers={"Authorization":f"Bearer {self.token}"}
