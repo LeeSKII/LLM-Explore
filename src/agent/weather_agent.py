@@ -5,13 +5,15 @@ import jwt
 import httpx
 import re
 import xml.etree.ElementTree as ET
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 import json
 from litellm import completion
 import os
 from enum import StrEnum
 
 load_dotenv()
+
+# TODO: 封装成一个Weather_Agent类，包含所有接口方法
 
 is_debug = True
 now = datetime.now()
@@ -171,20 +173,51 @@ def build_tool_result_messages(is_interactive,tool_result,action,messages,input_
         messages.append({'role':'user','content':tool_result})
     return messages
 
+class Memory:
+    def __init__(self):
+        self.tag=None
+        self.weight=None
+        self.description=None
+
 class BaseAgent:
+    '''
+    Retrieval: 实现了LLM的主动提问以及向用户回答
+    Tools: 实现了LLM调用外部工具补充自身知识或者需要权威知识以及根据工具的响应进行分析
+    Memory: 实现了LLM的记忆机制，在新消息到达的时候可以并行的write记忆，然后可以recall memory进行回忆，主要目的是focus LLM's attention。
+    '''
     def __init__(self,is_debug=True):
         self.is_debug = is_debug
+        # dict key:long memory,short memory
+        self.memory:Dict[str,List[Memory]] = {}
     
     def ask_followup_question(self,question,follow_up):
+        '''Retrieval(Query/Results):ask_followup_question'''
         return {'status': 'completed','question': question, 'follow_up': follow_up}
     
     def attempt_completion(self,result):
+        '''Retrieval(Query/Results):attempt_completion'''
         return {'status': 'completed','result': result}
     
-    # TODO: 实现一个回溯历史消息的工具，根据已有消息进行回答
+    # TODO: 实现一个回溯历史消息的上下文分析工具，根据已有消息进行回答，而不是请求特定的获取信息的工具   
+    def context_analysis(self,messages):
+        '''Retrieval(Query/Results):attempt_completion'''
+        pass
     
-    # TODO: 实现一个常识推理工具，这个工具可以自定义根据高级的泛化system_prompt，从另一个角度理解用户意图，允许LLM从系统提示词的限定中解放出来，尝试从常识推理的角度进行回答，提升LLM的智能程度。
-
+    # TODO: 实现一个深度思考研究工具，这个工具可以自定义更加高级|更全面|更具体的system_prompt，实现从深层次角度理解用户意图，允许LLM从原环境的系统提示词的限定中解放出来，尝试从深度思考的角度进行回答，提升LLM的智能程度。
+    def deep_research(self,system_prompt):
+        pass
+    
+    # TODO: 实现一个工具结果分析工具，分析工具的输出结果，提取出有用的信息，并将其转换为可读性更好或者更精简的格式，如将API返回的json数据转换为可读性更好的文字或适合LLM阅读的格式描述。
+    def tool_result_analysis(self,tool_result):
+        pass
+    
+    # TODO: 实现一个memory机制（这里的memory这是一个原型，memory的实现本质是实现一个历史消息的分析系统），当messages长度超过一定数量（或者其它约束条件）时，将历史消息按照语义分类为`long memory,short memory,memory的结构包含三部分:tag,weight,description,tag是记忆标签（限定标签数量，由系统定义）;weight是这类tag的message在历史对话中的权重,可由类似于token数进行计算占比;description是这个tag中message的摘要,并将long memory存储到memory库中，减低messages的复杂度，如果有关联后续做memory recall进行回忆。
+    def memory(self,messages):
+        pass
+    
+    # TODO: 实现一个记忆唤醒的工具，当用户输入的消息与历史消息相似度较高时，触发记忆唤醒，将之前的消息进行记忆唤醒，然后检索相关信息作为context，提升LLM的智能程度。
+    def memory_recall(self,messages):
+        pass
 class WeatherAPI(BaseAgent):
     def __init__(self,is_debug=True):
         self.is_debug = is_debug
