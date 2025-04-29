@@ -1030,7 +1030,7 @@ if __name__ == '__main__':
         }
     }
     
-    messages = [{'role':'user','content':'长沙今天天气如何'}]
+    messages = [{'role':'user','content':input("User: ")}]
 
     class ModelChoice(StrEnum):
         OPENER_ROUTER_GEMINI = 'open-router-gemini-flash'
@@ -1054,7 +1054,7 @@ if __name__ == '__main__':
     MAX_INPUT_LENGTH = 1000
     MODEL_NAME, API_KEY, BASE_URL = initialize_client(ModelChoice.DEEPSEEK)
     
-    max_iterator_num = 30
+    max_iterator_num = 300
     is_interactive = False
     index_iterator = 0
     weather_client = WeatherAPI(False)
