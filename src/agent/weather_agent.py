@@ -182,6 +182,8 @@ class BaseAgent:
         return {'status': 'completed','result': result}
     
     # TODO: 实现一个回溯历史消息的工具，根据已有消息进行回答
+    
+    # TODO: 实现一个常识推理工具，这个工具可以自定义根据高级的泛化system_prompt，从另一个角度理解用户意图，允许LLM从系统提示词的限定中解放出来，尝试从常识推理的角度进行回答，提升LLM的智能程度。
 
 class WeatherAPI(BaseAgent):
     def __init__(self,is_debug=True):
