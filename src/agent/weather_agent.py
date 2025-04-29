@@ -28,6 +28,7 @@ def get_assistant_response(model_name, api_key, base_url, messages, system_promp
             api_key=api_key,
             base_url=base_url,
             stream=True,
+            temperature=0.2,
             num_retries=num_retries  # 配置自动重试次数
         )
         return stream
@@ -146,9 +147,11 @@ def tool_process(response,tool_client):
     thinking,action = parse_input_text(response)
     is_interactive,tool_result = execute_action(action,tool_client)
     if is_debug:
+        print('=====:','tool_process 处理结果:')
         print('Thinking:',thinking)
         print('Action:',action)
         print('Tool Result:',tool_result)
+        print('======','completed tool_process')
     return is_interactive,tool_result,action
 
 def build_tool_result_messages(is_interactive,tool_result,action,messages,input_message):
@@ -667,11 +670,11 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
             return {'status': 'error','message': '请求air_quality_history失败'}
 
 system_prompt=f'''
-你是Clerk,一位专注天气数据查询的女助手,当前系统时间:{current_time},星期:{weekday_name},你严谨的工作风格和可靠性使你具备如下工作特征：
+你是Clerk,一位专注天气数据查询的助手,当前系统时间:{current_time},星期:{weekday_name},你严谨的工作风格和可靠性使你具备如下工作特征：
 
 - 工具优先: 每轮对话都需要使用一个工具完成任务,工具的选择和参数配置应严格遵循XML工具调用格式。
 - 极简风格：回答仅包含用户请求的必要天气数据或基于历史对话数据的分析。避免闲聊和不必要的确认。
-- 数据严谨：所有回答都应基于工具返回的实时或历史数据,不虚构和推理任何必要参数。
+- 数据严谨：所有回答都应基于工具返回的实时或历史数据,不虚构和推理任何必要参数和信息。
 - 上下文感知: 可以通过回溯历史消息,分析当前待调用工具链需要的上下文信息,Before use `ask_followup_question` tool to gather additional information, you need to review all the insight context information. 
 
 ======
@@ -966,7 +969,7 @@ By waiting for and carefully considering the user's response after each tool use
 
 OUTPUT FORMATTING:
 
-Always follow the structure below:
+**Always follow the structure below, Only use <thinking> and <action> tag**:
 
 <thinking>
 Your thoughts here
@@ -1051,25 +1054,45 @@ if __name__ == '__main__':
     MAX_INPUT_LENGTH = 1000
     MODEL_NAME, API_KEY, BASE_URL = initialize_client(ModelChoice.DEEPSEEK)
     
-    max_iterator_num = 10
+    max_iterator_num = 30
     is_interactive = False
     index_iterator = 0
     weather_client = WeatherAPI(False)
+    is_user_turn= False
     
-    while index_iterator < max_iterator_num and not is_interactive:
-    
+    while index_iterator < max_iterator_num:
+        role = "assistant"
         stream = get_assistant_response(MODEL_NAME, API_KEY, BASE_URL, messages, system_prompt)
         if stream:
             response = ""
             for chunk in stream:
                 if chunk.choices[0].delta.content is not None:
                     response += chunk.choices[0].delta.content
-            print(response)
-            messages.append({"role": "assistant", "content": response})
+            if is_debug:
+                print('======')
+                print(f"LLm: \n{response}")
+                print('======')
+            if is_user_turn:
+                role = "user"
+            else:
+                role = "assistant"
+            messages.append({"role": role, "content": response})
+            is_user_turn = not is_user_turn
+
         else:
             print("No response from the model")
             
         is_interactive,tool_result,action = tool_process(response = response, tool_client=weather_client)
-        messages = build_tool_result_messages(is_interactive,tool_result,action,messages,input_message = '') 
-        
+        if is_interactive:
+            user_input = input("User: ")
+            if user_input == "exit":
+                break
+            else:
+                messages = build_tool_result_messages(is_interactive,tool_result,action,messages,input_message = user_input) 
+                is_interactive = False
+            is_user_turn = False
+        else:
+            messages = build_tool_result_messages(is_interactive,tool_result,action,messages,input_message = "")
+            is_user_turn = not is_user_turn
+
         index_iterator+=1
