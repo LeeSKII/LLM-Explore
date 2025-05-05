@@ -57,8 +57,7 @@ class BaseAgent:
         except Exception as e:
             print(f"获取助手回复时出错: {e}")
             return None
-    
-    
+     
     def strip_outer_tag(self,xml_str: str) -> str:
         """移除字符串XML的最外层标签"""
         start = xml_str.find('>') + 1
@@ -193,6 +192,7 @@ class BaseAgent:
             self.messages.append({'role':'user','content':tool_result})
     
     def run(self):
+        '''启动Agent，开始对话'''
         is_user_turn= False
         while True:
             role = "assistant"
