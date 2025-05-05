@@ -132,23 +132,26 @@ class BaseAgent:
         tool_name = action_data.get('tool_name')
         parameters = action_data.get('parameters', {})
         
-        if not hasattr(self, tool_name):
-            tool_result = [{
-                "type": "text",
-                "text": f"[{tool_name}] Result:"
-            },
-            {
-                "type": "text",
-                "text": '客户端没有名为 {tool_name} 的工具方法，请仔细检查可用工具，并选择正确的工具和参数。'
-            }]
-            return False,tool_result
-        if self.hook_interactive(tool_name=tool_name):
-            tool_result = [{
-                "type": "interactive",
-                "text": f"[{tool_name}] wait for user input"
-            }]
-            return True,tool_result
+        # if self.is_debug:
+        #     print(f"执行动作: {tool_name}, 参数: {parameters}")
         try:
+            if not hasattr(self, tool_name):
+                tool_result = [{
+                    "type": "text",
+                    "text": f"[{tool_name}] Result:"
+                },
+                {
+                    "type": "text",
+                    "text": '客户端没有名为 {tool_name} 的工具方法，请仔细检查可用工具，并选择正确的工具和参数。'
+                }]
+                return False,tool_result
+            if self.hook_interactive(tool_name=tool_name):
+                tool_result = [{
+                    "type": "interactive",
+                    "text": f"[{tool_name}] wait for user input"
+                }]
+                return True,tool_result
+        
             method = getattr(self, tool_name)
             method_result = method(**parameters)
             tool_result = [{
@@ -165,15 +168,22 @@ class BaseAgent:
 
     def tool_process(self,response):
         '''使用工具客户端处理llm返回的消息'''
-        thinking,action = self.parse_input_text(response)
-        is_interactive,tool_result = self.execute_action(action)
-        if self.is_debug:
-            print('=====:','tool_process 处理结果:')
-            print('Thinking:',thinking)
-            print('Action:',action)
-            print('Tool Result:',tool_result)
-            print('======','completed tool_process')
-        return is_interactive,tool_result,action
+        try:
+            thinking,action = self.parse_input_text(response)
+            is_interactive,tool_result = self.execute_action(action)
+            if self.is_debug:
+                print('=====:','tool_process 处理结果:')
+                print('Thinking:',thinking)
+                print('Action:',action)
+                print('Tool Result:',tool_result)
+                print('======','completed tool_process')
+            return is_interactive,tool_result,action
+        except Exception as e:
+            print(f"处理工具调用时出错: {e}")
+            return False,[{
+                "type": "text",
+                "text": f"处理工具调用时出错: 请严格按照输出格式生成正确的工具调用信息。"
+            }],{}
 
     def build_tool_result_messages(self,is_interactive,tool_result,action,input_message):
         if is_interactive:
@@ -761,12 +771,24 @@ if __name__ == '__main__':
             'model_name': 'openrouter/google/gemini-2.5-flash-preview',
             'api_key': os.getenv("OPENROUTER_API_KEY"),
             'base_url': os.getenv("OPENROUTER_BASE_URL")
+        },
+        'qwen3-235b-a22b': {
+            'model_name': 'openrouter/qwen/qwen3-235b-a22b:free',
+            'api_key': os.getenv("OPENROUTER_API_KEY"),
+            'base_url': os.getenv("OPENROUTER_BASE_URL")
+        },
+        'deepseek-free': {
+            'model_name': 'openrouter/deepseek/deepseek-chat-v3-0324:free',
+            'api_key': os.getenv("OPENROUTER_API_KEY"),
+            'base_url': os.getenv("OPENROUTER_BASE_URL")
         }
     }
 
     class ModelChoice(StrEnum):
         OPENER_ROUTER_GEMINI = 'open-router-gemini-flash'
         DEEPSEEK = "deepseek-chat"
+        QWEN3 = "qwen3-235b-a22b"
+        DEEPSEEK_FREE = "deepseek-free"
         
     def initialize_client(model_choice: ModelChoice):
         if model_choice not in model_choices:
