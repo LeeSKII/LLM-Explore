@@ -13,166 +13,6 @@ from enum import StrEnum
 
 load_dotenv()
 
-# TODO: 封装成一个Weather_Agent类，包含所有接口方法
-
-is_debug = True
-now = datetime.now()
-current_time = now.strftime("%Y-%m-%d %H:%M:%S UTC+8")
-weekday_name = now.strftime("%A")
-print(f'''当前时间：{current_time}, 星期:{weekday_name}''')
-
-def get_assistant_response(model_name, api_key, base_url, messages, system_prompt, num_retries=3):
-    try:
-        # 使用 litellm 的 completion 方法
-        stream = completion(
-            model=model_name,
-            messages=[{"role": "system", "content": system_prompt}] + [{"role": m["role"], "content": m["content"]} for m in messages],
-            api_key=api_key,
-            base_url=base_url,
-            stream=True,
-            temperature=0.2,
-            num_retries=num_retries  # 配置自动重试次数
-        )
-        return stream
-    except Exception as e:
-        print(f"获取助手回复时出错: {e}")
-        return None
-
-def strip_outer_tag(xml_str: str) -> str:
-    """移除字符串XML的最外层标签"""
-    start = xml_str.find('>') + 1
-    end = xml_str.rfind('<')
-    return xml_str[start:end].strip()
-
-def parse_input_text(input_text: str) -> Tuple[str, Dict]:
-    """
-    解析输入文本，提取thinking内容和action中的工具调用信息
-    
-    参数:
-        input_text: 输入文本，包含<thinking>和<action>标签
-        
-    返回:
-        Tuple[str, Dict]: 
-            第一个元素是thinking内容，
-            第二个元素是包含工具名和参数字典的字典
-    """
-    # 解析thinking内容
-    thinking_start = input_text.find("<thinking>") + len("<thinking>")
-    thinking_end = input_text.find("</thinking>")
-    thinking_content = input_text[thinking_start:thinking_end].strip()
-    
-    # 解析action内容
-    action_start = input_text.find("<action>") + len("<action>")
-    action_end = input_text.find("</action>")
-    action_content = input_text[action_start:action_end].strip()
-    
-    # 解析工具调用信息
-    tool_info = {}
-    
-    try:
-        # 包裹在根标签中确保XML格式正确
-        root = ET.fromstring(f"<root>{action_content}</root>")
-        if len(root) > 0:
-            # 工具名是第一个子元素的标签名
-            tool_element = root[0]
-            tool_name = tool_element.tag
-            tool_info["tool_name"] = tool_name
-            
-            # 解析参数 - 移除最外层标签
-            params = {}
-            for param in tool_element:
-                param_xml = ET.tostring(param, encoding='unicode').strip()
-                # 移除最外层标签
-                if param.text or len(param) > 0:  # 有内容或子元素
-                    params[param.tag] = strip_outer_tag(param_xml)
-                else:  # 空标签
-                    params[param.tag] = ""
-            
-            tool_info["parameters"] = params
-            
-    except ET.ParseError as e:
-        print(f"解析XML时出错: {e}")
-        return thinking_content, {"error": str(e)}
-    
-    return thinking_content, tool_info
-
-def hook_interactive(tool_name):
-    if tool_name in ['ask_followup_question','attempt_completion']:
-        return True
-    else:
-        return False
-
-def execute_action(action_data, client):
-    """
-    执行动作的工具方法
-    
-    :param action_data: 动作数据，格式如 {'tool_name': 'city_lookup', 'parameters': {'location': '北京'}}
-    :param client: 包含工具方法的客户端实例
-    :return: 是否需要等待用户输入，动作执行结果
-    """
-    tool_name = action_data.get('tool_name')
-    parameters = action_data.get('parameters', {})
-    
-    if not hasattr(client, tool_name):
-        tool_result = [{
-            "type": "text",
-            "text": f"[{tool_name}] Result:"
-        },
-        {
-            "type": "text",
-            "text": '客户端没有名为 {tool_name} 的工具方法，请仔细检查可用工具，并选择正确的工具和参数。'
-        }]
-        return False,tool_result
-    if hook_interactive(tool_name=tool_name):
-        tool_result = [{
-            "type": "interactive",
-            "text": f"[{tool_name}] wait for user input"
-        }]
-        return True,tool_result
-    try:
-        method = getattr(client, tool_name)
-        method_result = method(**parameters)
-        tool_result = [{
-            "type": "text",
-            "text": f"[{tool_name}] Result:"
-        },
-        {
-            "type": "text",
-            "text": json.dumps(method_result, ensure_ascii=False)
-        }]
-        return False,tool_result
-    except Exception as e:
-        raise ValueError(f"执行 {tool_name} 工具方法时出错,传递参数: {parameters}, 错误信息:{e}")
-
-def tool_process(response,tool_client):
-    '''使用工具客户端处理llm返回的消息'''
-    thinking,action = parse_input_text(response)
-    is_interactive,tool_result = execute_action(action,tool_client)
-    if is_debug:
-        print('=====:','tool_process 处理结果:')
-        print('Thinking:',thinking)
-        print('Action:',action)
-        print('Tool Result:',tool_result)
-        print('======','completed tool_process')
-    return is_interactive,tool_result,action
-
-def build_tool_result_messages(is_interactive,tool_result,action,messages,input_message):
-    if is_interactive:
-        # 进入到用户交互环节
-        # 1.先将Action中的结果显示给用户,如果是`attempt_completion`,显示`result`,如果是`ask_followup_question`,显示`question`和`follow_up`
-        # 2.搜集用户输入的消息拼接msg发送给LLM
-        messages.append({'role':'user','content':[{
-                "type": "text",
-                "text": f"[{action.get('tool_name')}] Result:"
-            },
-            {
-                "type": "text",
-                "text": input_message   # user input message
-            }]})
-    else:
-        messages.append({'role':'user','content':tool_result})
-    return messages
-
 class Memory:
     def __init__(self):
         self.tag=None
@@ -185,10 +25,206 @@ class BaseAgent:
     Tools: 实现了LLM调用外部工具补充自身知识或者需要权威知识以及根据工具的响应进行分析
     Memory: 实现了LLM的记忆机制，在新消息到达的时候可以并行的write记忆，然后可以recall memory进行回忆，主要目的是focus LLM's attention。
     '''
-    def __init__(self,is_debug=True):
+    def __init__(self,messages,system_prompt,model_name, api_key, base_url,temperature=0.2, num_retries=3,is_debug=True):
         self.is_debug = is_debug
         # dict key:long memory,short memory
         self.memory:Dict[str,List[Memory]] = {}
+        self.messages = messages
+        self.system_prompt = system_prompt
+        self.model_name = model_name
+        self.api_key = api_key
+        self.base_url = base_url
+        self.num_retries = num_retries
+        self.temperature = temperature
+        
+    def get_assistant_response(self):
+        try:
+            # 使用 litellm 的 completion 方法
+            stream = completion(
+                model=self.model_name,
+                messages=[{"role": "system", "content": self.system_prompt}] + [{"role": m["role"], "content": m["content"]} for m in self.messages],
+                api_key=self.api_key,
+                base_url=self.base_url,
+                stream=True,
+                temperature=self.temperature,
+                num_retries=self.num_retries  # 配置自动重试次数
+            )
+            return stream
+        except Exception as e:
+            print(f"获取助手回复时出错: {e}")
+            return None
+    
+    
+    def strip_outer_tag(self,xml_str: str) -> str:
+        """移除字符串XML的最外层标签"""
+        start = xml_str.find('>') + 1
+        end = xml_str.rfind('<')
+        return xml_str[start:end].strip()
+
+    def parse_input_text(self,input_text: str) -> Tuple[str, Dict]:
+        """
+        解析输入文本，提取thinking内容和action中的工具调用信息
+        
+        参数:
+            input_text: 输入文本，包含<thinking>和<action>标签
+            
+        返回:
+            Tuple[str, Dict]: 
+                第一个元素是thinking内容，
+                第二个元素是包含工具名和参数字典的字典
+        """
+        # 解析thinking内容
+        thinking_start = input_text.find("<thinking>") + len("<thinking>")
+        thinking_end = input_text.find("</thinking>")
+        thinking_content = input_text[thinking_start:thinking_end].strip()
+        
+        # 解析action内容
+        action_start = input_text.find("<action>") + len("<action>")
+        action_end = input_text.find("</action>")
+        action_content = input_text[action_start:action_end].strip()
+        
+        # 解析工具调用信息
+        tool_info = {}
+        
+        try:
+            # 包裹在根标签中确保XML格式正确
+            root = ET.fromstring(f"<root>{action_content}</root>")
+            if len(root) > 0:
+                # 工具名是第一个子元素的标签名
+                tool_element = root[0]
+                tool_name = tool_element.tag
+                tool_info["tool_name"] = tool_name
+                
+                # 解析参数 - 移除最外层标签
+                params = {}
+                for param in tool_element:
+                    param_xml = ET.tostring(param, encoding='unicode').strip()
+                    # 移除最外层标签
+                    if param.text or len(param) > 0:  # 有内容或子元素
+                        params[param.tag] = self.strip_outer_tag(param_xml)
+                    else:  # 空标签
+                        params[param.tag] = ""
+                
+                tool_info["parameters"] = params
+                
+        except ET.ParseError as e:
+            print(f"解析XML时出错: {e}")
+            return thinking_content, {"error": str(e)}
+        
+        return thinking_content, tool_info
+
+    def hook_interactive(self,tool_name):
+        if tool_name in ['ask_followup_question','attempt_completion']:
+            return True
+        else:
+            return False
+
+    def execute_action(self,action_data):
+        """
+        执行动作的工具方法
+        
+        :param action_data: 动作数据，格式如 {'tool_name': 'city_lookup', 'parameters': {'location': '北京'}}
+        :return: 是否需要等待用户输入，动作执行结果
+        """
+        tool_name = action_data.get('tool_name')
+        parameters = action_data.get('parameters', {})
+        
+        if not hasattr(self, tool_name):
+            tool_result = [{
+                "type": "text",
+                "text": f"[{tool_name}] Result:"
+            },
+            {
+                "type": "text",
+                "text": '客户端没有名为 {tool_name} 的工具方法，请仔细检查可用工具，并选择正确的工具和参数。'
+            }]
+            return False,tool_result
+        if self.hook_interactive(tool_name=tool_name):
+            tool_result = [{
+                "type": "interactive",
+                "text": f"[{tool_name}] wait for user input"
+            }]
+            return True,tool_result
+        try:
+            method = getattr(self, tool_name)
+            method_result = method(**parameters)
+            tool_result = [{
+                "type": "text",
+                "text": f"[{tool_name}] Result:"
+            },
+            {
+                "type": "text",
+                "text": json.dumps(method_result, ensure_ascii=False)
+            }]
+            return False,tool_result
+        except Exception as e:
+            raise ValueError(f"执行 {tool_name} 工具方法时出错,传递参数: {parameters}, 错误信息:{e}")
+
+    def tool_process(self,response):
+        '''使用工具客户端处理llm返回的消息'''
+        thinking,action = self.parse_input_text(response)
+        is_interactive,tool_result = self.execute_action(action)
+        if self.is_debug:
+            print('=====:','tool_process 处理结果:')
+            print('Thinking:',thinking)
+            print('Action:',action)
+            print('Tool Result:',tool_result)
+            print('======','completed tool_process')
+        return is_interactive,tool_result,action
+
+    def build_tool_result_messages(self,is_interactive,tool_result,action,input_message):
+        if is_interactive:
+            # 进入到用户交互环节
+            # 1.先将Action中的结果显示给用户,如果是`attempt_completion`,显示`result`,如果是`ask_followup_question`,显示`question`和`follow_up`
+            # 2.搜集用户输入的消息拼接msg发送给LLM
+            self.messages.append({'role':'user','content':[{
+                    "type": "text",
+                    "text": f"[{action.get('tool_name')}] Result:"
+                },
+                {
+                    "type": "text",
+                    "text": input_message   # user input message
+                }]})
+        else:
+            self.messages.append({'role':'user','content':tool_result})
+    
+    def run(self):
+        is_user_turn= False
+        while True:
+            role = "assistant"
+            stream = self.get_assistant_response()
+            if stream:
+                response = ""
+                for chunk in stream:
+                    if chunk.choices[0].delta.content is not None:
+                        response += chunk.choices[0].delta.content
+                if self.is_debug:
+                    print('======')
+                    print(f"LLm: \n{response}")
+                    print('======')
+                if is_user_turn:
+                    role = "user"
+                else:
+                    role = "assistant"
+                self.messages.append({"role": role, "content": response})
+                is_user_turn = not is_user_turn
+
+            else:
+                print("No response from the model")
+                
+            is_interactive,tool_result,action = self.tool_process(response = response)
+            if is_interactive:
+                user_input = input("User: ")
+                if user_input == "exit":
+                    break
+                else:
+                    self.build_tool_result_messages(is_interactive,tool_result,action,input_message = user_input) 
+                    is_interactive = False
+                is_user_turn = False
+            else:
+                self.build_tool_result_messages(is_interactive,tool_result,action,input_message = "")
+                is_user_turn = not is_user_turn
+        
     
     def ask_followup_question(self,question,follow_up):
         '''Retrieval(Query/Results):ask_followup_question'''
@@ -204,7 +240,7 @@ class BaseAgent:
         pass
     
     # TODO: 实现一个深度思考研究工具，这个工具可以自定义更加高级|更全面|更具体的system_prompt，实现从深层次角度理解用户意图，允许LLM从原环境的系统提示词的限定中解放出来，尝试从深度思考的角度进行回答，提升LLM的智能程度。
-    def deep_research(self,system_prompt):
+    def deeper_thinking(self,system_prompt):
         pass
     
     # TODO: 实现一个工具结果分析工具，分析工具的输出结果，提取出有用的信息，并将其转换为可读性更好或者更精简的格式，如将API返回的json数据转换为可读性更好的文字或适合LLM阅读的格式描述。
@@ -218,9 +254,9 @@ class BaseAgent:
     # TODO: 实现一个记忆唤醒的工具，当用户输入的消息与历史消息相似度较高时，触发记忆唤醒，将之前的消息进行记忆唤醒，然后检索相关信息作为context，提升LLM的智能程度。
     def memory_recall(self,messages):
         pass
-class WeatherAPI(BaseAgent):
-    def __init__(self,is_debug=True):
-        self.is_debug = is_debug
+class WeatherAgent(BaseAgent):
+    def __init__(self,messages,system_prompt,model_name, api_key, base_url,temperature=0.2, num_retries=3,is_debug=True):
+        super().__init__(messages,system_prompt,model_name, api_key, base_url,temperature, num_retries,is_debug)
         self.private_key = """-----BEGIN PRIVATE KEY-----
 MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
 -----END PRIVATE KEY-----"""
@@ -278,6 +314,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         path = '/geo/v2/city/lookup'
         url = f'{self.api_host}{path}?location={location}'
         if self.is_debug:
+            print("======:URL 请求相关信息")
             print(url)
             print(self.token)
         # 发送GET请求
@@ -285,6 +322,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         try:
             response = httpx.get(url,headers=headers)
             if self.is_debug:
+                print('======: city_lookup 响应相关信息')
                 print(response.status_code)  # 状态码
                 print(response.text)         # 响应内容
             return response.json()
@@ -706,6 +744,11 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
             print(f"Unexpected error: {e}")
             return {'status': 'error','message': '请求air_quality_history失败'}
 
+now = datetime.now()
+current_time = now.strftime("%Y-%m-%d %H:%M:%S UTC+8")
+weekday_name = now.strftime("%A")
+print(f'''当前时间：{current_time}, 星期:{weekday_name}''')
+
 system_prompt=f'''
 TIME
 
@@ -1101,46 +1144,6 @@ if __name__ == '__main__':
     MAX_INPUT_LENGTH = 1000
     MODEL_NAME, API_KEY, BASE_URL = initialize_client(ModelChoice.DEEPSEEK)
     
-    # TODO: 这里应该改成限制单次工具调用迭代次数限制，而不是整个对话迭代次数限制
-    max_iterator_num = 300
-    is_interactive = False
-    index_iterator = 0
-    weather_client = WeatherAPI(False)
-    is_user_turn= False
+    weather_agent = WeatherAgent(messages=messages,system_prompt=system_prompt, model_name=MODEL_NAME, api_key=API_KEY, base_url=BASE_URL)
+    weather_agent.run()
     
-    while index_iterator < max_iterator_num:
-        role = "assistant"
-        stream = get_assistant_response(MODEL_NAME, API_KEY, BASE_URL, messages, system_prompt)
-        if stream:
-            response = ""
-            for chunk in stream:
-                if chunk.choices[0].delta.content is not None:
-                    response += chunk.choices[0].delta.content
-            if is_debug:
-                print('======')
-                print(f"LLm: \n{response}")
-                print('======')
-            if is_user_turn:
-                role = "user"
-            else:
-                role = "assistant"
-            messages.append({"role": role, "content": response})
-            is_user_turn = not is_user_turn
-
-        else:
-            print("No response from the model")
-            
-        is_interactive,tool_result,action = tool_process(response = response, tool_client=weather_client)
-        if is_interactive:
-            user_input = input("User: ")
-            if user_input == "exit":
-                break
-            else:
-                messages = build_tool_result_messages(is_interactive,tool_result,action,messages,input_message = user_input) 
-                is_interactive = False
-            is_user_turn = False
-        else:
-            messages = build_tool_result_messages(is_interactive,tool_result,action,messages,input_message = "")
-            is_user_turn = not is_user_turn
-
-        index_iterator+=1
