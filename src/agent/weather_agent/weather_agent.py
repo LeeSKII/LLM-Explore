@@ -777,6 +777,11 @@ if __name__ == '__main__':
             'api_key': os.getenv("OPENROUTER_API_KEY"),
             'base_url': os.getenv("OPENROUTER_BASE_URL")
         },
+        'qwen3-32b': {
+            'model_name': 'openrouter/qwen/qwen3-32b:free',
+            'api_key': os.getenv("OPENROUTER_API_KEY"),
+            'base_url': os.getenv("OPENROUTER_BASE_URL")
+        },
         'deepseek-free': {
             'model_name': 'openrouter/deepseek/deepseek-chat-v3-0324:free',
             'api_key': os.getenv("OPENROUTER_API_KEY"),
@@ -789,6 +794,7 @@ if __name__ == '__main__':
         DEEPSEEK = "deepseek-chat"
         QWEN3 = "qwen3-235b-a22b"
         DEEPSEEK_FREE = "deepseek-free"
+        QWEN3_32B = "qwen3-32b"
         
     def initialize_client(model_choice: ModelChoice):
         if model_choice not in model_choices:
@@ -806,7 +812,7 @@ if __name__ == '__main__':
     # Initialize client
     MAX_MESSAGES = 20
     MAX_INPUT_LENGTH = 1000
-    MODEL_NAME, API_KEY, BASE_URL = initialize_client(ModelChoice.DEEPSEEK)
+    MODEL_NAME, API_KEY, BASE_URL = initialize_client(ModelChoice.QWEN3_32B)
     
     # ==========End of Model Choice=================
     
