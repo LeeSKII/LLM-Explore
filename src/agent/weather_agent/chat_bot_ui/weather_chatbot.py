@@ -480,15 +480,21 @@ DEFAULT_SYSTEM_PROMPT = weather_system_prompt_cot if 'weather_system_prompt_cot'
 
 class ModelChoice(StrEnum):
     DEEPSEEK = "deepseek-chat"
-    OPENER_ROUTER_GEMINI = 'open-router-gemini-flash'
+    OPENER_ROUTER_GEMINI_1_5_FLASH = 'open-router-gemini-flash_1_5'
+    OPENER_ROUTER_GEMINI_1_5_FLASH_8B = 'open-router-gemini-flash_1_5_8b'
 MODEL_CONFIGS = {
     ModelChoice.DEEPSEEK: {
         'model_name': 'deepseek/deepseek-chat',
         'api_key': os.getenv("DEEPSEEK_API_KEY", "YOUR_DEEPSEEK_API_KEY"), 
         'base_url': os.getenv("DEEPSEEK_API_BASE_URL", "YOUR_DEEPSEEK_BASE_URL")
     },
-    ModelChoice.OPENER_ROUTER_GEMINI: {
+    ModelChoice.OPENER_ROUTER_GEMINI_1_5_FLASH: {
         'model_name': 'openrouter/google/gemini-flash-1.5',
+        'api_key': os.getenv("OPENROUTER_API_KEY", "YOUR_OPENROUTER_API_KEY"),
+        'base_url': os.getenv("OPENROUTER_BASE_URL", "YOUR_OPENROUTER_BASE_URL")
+    },
+    ModelChoice.OPENER_ROUTER_GEMINI_1_5_FLASH_8B: {
+        'model_name': 'openrouter/google/gemini-flash-1.5-8b',
         'api_key': os.getenv("OPENROUTER_API_KEY", "YOUR_OPENROUTER_API_KEY"),
         'base_url': os.getenv("OPENROUTER_BASE_URL", "YOUR_OPENROUTER_BASE_URL")
     }
