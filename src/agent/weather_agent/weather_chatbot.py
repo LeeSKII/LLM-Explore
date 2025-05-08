@@ -290,24 +290,37 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         self.project_id = os.getenv("QWEATHER_PROJECT_ID", "3AE3REGEEV")
         self.key_id = os.getenv("QWEATHER_KEY_ID", 'CMWDXN77PG')
         self.api_host = os.getenv("QWEATHER_API_HOST", 'https://mr6r6t9rj9.re.qweatherapi.com')
-        self.token = self._get_weather_jwt()
+        self.token = None
+        self.token_exp_time = 0
+        self._ensure_valid_weather_jwt() # Initial token generation
 
-    def _get_weather_jwt(self): # Renamed to avoid conflict if a tool is named get_weather_jwt
+    def _get_weather_jwt(self):
+        iat = int(time.time()) - 100 # Issue time slightly in the past
+        exp = iat + 86300            # Expiry time (24h - 100s from iat)
         payload = {
-            'iat': int(time.time()) - 100,
-            'exp': int(time.time()) + 86300, # 24 hours minus 100 seconds
+            'iat': iat,
+            'exp': exp,
             'sub': self.project_id
         }
         headers = {'kid': self.key_id}
         try:
             encoded_jwt = jwt.encode(payload, self.private_key, algorithm='EdDSA', headers=headers)
             if self.is_debug: print(f"Generated QWeather JWT: {encoded_jwt[:20]}...")
-            return encoded_jwt
+            return encoded_jwt, exp # Return token and its expiry time
         except Exception as e:
             print(f"Error generating QWeather JWT: {e}")
-            # Fallback or raise error, for now, returning a dummy to avoid crashing on init
-            # In a real app, this should be handled more robustly (e.g., disable weather tools)
-            return "dummy_jwt_error"
+            return None, 0
+        
+    def _ensure_valid_weather_jwt(self):
+        # Refresh if no token, or if token expires in less than 5 minutes (300 seconds)
+        if self.token is None or self.token_exp_time < (time.time() + 300):
+            if self.is_debug and self.token is not None:
+                print("QWeather JWT is expiring soon or invalid, refreshing...")
+            self.token, self.token_exp_time = self._get_weather_jwt()
+            if self.token is None:
+                # Handle critical error: Weather tools will fail.
+                # You might want to raise an exception or set a flag to disable weather tools.
+                print("CRITICAL: Failed to generate/refresh QWeather JWT. Weather tools may not function.")
 
 
     def format_location(self, location:str):
@@ -322,11 +335,9 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
     def _make_qweather_request(self, path:str, params:Dict[str,Any]):
         # Check if token is near expiry and refresh if needed (simplified: refresh every time for this example)
         # A better approach would be to check token's 'exp' claim.
-        if True: # Simplified: refresh token before each call or implement proper expiry check
-            self.token = self._get_weather_jwt()
-            if self.token == "dummy_jwt_error":
-                 return {'status': 'error', 'code': '500', 'message': 'Failed to generate authentication token for QWeather.'}
-
+        self._ensure_valid_weather_jwt() # Ensure token is valid before request
+        if not self.token: # If token generation failed critically
+             return {'status': 'error', 'code': '500', 'message': 'Failed to generate authentication token for QWeather.'}
 
         url = f'{self.api_host}{path}'
         headers = {"Authorization": f"Bearer {self.token}"}
@@ -520,7 +531,7 @@ def initialize_agent(force_reinit=False):
     if agent_needs_init:
         if st.session_state.is_debug_mode: print("Re-initializing WeatherAgent.")
         st.session_state.weather_agent = WeatherAgent( 
-            messages=[{"role": "system", "content": st.session_state.system_prompt}], 
+            messages=[], 
             system_prompt=st.session_state.system_prompt, model_name=model_name,
             api_key=api_key, base_url=base_url, is_debug=st.session_state.is_debug_mode
         )
