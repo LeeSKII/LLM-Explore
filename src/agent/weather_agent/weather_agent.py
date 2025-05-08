@@ -812,7 +812,7 @@ if __name__ == '__main__':
     # Initialize client
     MAX_MESSAGES = 20
     MAX_INPUT_LENGTH = 1000
-    MODEL_NAME, API_KEY, BASE_URL = initialize_client(ModelChoice.QWEN3_32B)
+    MODEL_NAME, API_KEY, BASE_URL = initialize_client(ModelChoice.DEEPSEEK)
     
     # ==========End of Model Choice=================
     
