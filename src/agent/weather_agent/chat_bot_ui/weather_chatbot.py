@@ -501,9 +501,9 @@ MODEL_CONFIGS = {
 }
 
 st.set_page_config(layout="wide", page_title="Weather Agent Chatbot")
-st.sidebar.title("Weather Agent Configuration")
+st.sidebar.title("Agent Settings")
 selected_model_key = st.sidebar.selectbox(
-    "Choose a Model:", 
+    "选择模型:", 
     options=list(ModelChoice), 
     format_func=lambda x: x.value,
     help="选择驱动 Agent 的大语言模型。"
@@ -518,7 +518,7 @@ current_system_prompt = st.sidebar.text_area(
     help="定义 Agent 的核心行为和角色。修改后会开启新的对话。"
 ) 
 
-if 'is_debug_mode' not in st.session_state: st.session_state.is_debug_mode = True
+if 'is_debug_mode' not in st.session_state: st.session_state.is_debug_mode = False
 st.session_state.is_debug_mode = st.sidebar.checkbox(
     "Enable Agent Debug Mode", 
     value=st.session_state.is_debug_mode,
@@ -567,7 +567,7 @@ if 'new_user_message_to_process' not in st.session_state:
     st.session_state.new_user_message_to_process = None
 
 
-if st.sidebar.button("开始新对话", help="清除当前对话历史并重置 Agent。"):
+if st.sidebar.button("🧐开始新对话", help="👋🏻清除当前对话历史并重置 Agent。"):
     st.session_state.messages = []
     initialize_agent(force_reinit=True) # Reinitialize agent with potentially new system prompt
     st.session_state.agent_is_waiting_for_input = False
@@ -575,9 +575,13 @@ if st.sidebar.button("开始新对话", help="清除当前对话历史并重置 
     st.session_state.current_turn_intermediate_steps = []
     st.session_state.new_user_message_to_process = None # Reset this too
     st.rerun()
+    
+st.sidebar.markdown("---") # Add a separator
+
+st.sidebar.markdown("**Author:** *Ski Lee*")
 
 st.title("Weather Agent Chatbot 🤖🌦️")
-st.markdown(f"Using Model: `{MODEL_INFO['model_name']}`")
+st.badge(f"*当前模型: `{MODEL_INFO['model_name']}`*")
 
 # --- Initial Conversation Starters ---
 INITIAL_PROMPTS = [
@@ -589,8 +593,8 @@ INITIAL_PROMPTS = [
 ]
 
 if not st.session_state.messages: # Only show if chat is empty
-    st.markdown("你好！我是天气助手智能体，我的运行逻辑完全由AI驱动，自主调用Weather Tools获取真实天气数据，并提供建议。你可以问我关于天气或者任何你感兴趣的问题，或者试试下面的常见问题：")
-    st.markdown("*如果觉得Deepseek模型速度不够快，可以尝试侧边栏的模型选择，使用gemini模型，它可以提供更快的响应速度，Even not smarter than Deepseek。* 😂") 
+    st.markdown("你好！我是天气助手智能体，我的运行逻辑完全由AI驱动。自主调用和风天气Weather Tools获取真实天气数据，并提供建议。你可以问我关于天气或者任何你感兴趣的问题，或者试试下面的常见问题：")
+    st.caption("*如果觉得Deepseek模型速度不够快，可以尝试侧边栏的模型选择，使用gemini模型，它可以提供更快的响应速度，Even not smarter than Deepseek。* 😂") 
     st.markdown("❤️ **我们不会记录任何聊天记录。**")
     # Create columns for a better layout, e.g., 2 or 3 buttons per row
     # Adjust the number of columns based on how many prompts you have
@@ -620,7 +624,7 @@ for i, msg_data in enumerate(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]):
             is_last_message = (i == len(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]) - 1)
             expanded_default = is_last_message and not st.session_state.agent_is_waiting_for_input
 
-            with st.expander("View Agent's Process", expanded=expanded_default):
+            with st.expander("查看智能体的所有执行步骤👀", expanded=expanded_default):
                 for step in msg_data["intermediate_steps"]:
                     step_type = step.get("type", "unknown")
                     step_title = step.get("title", step_type.replace("_", " ").title())
@@ -700,9 +704,9 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
             st.session_state.current_turn_intermediate_steps.append(
                 {"type": "thinking", "title": f"🤔 Agent Thinking (Step {step_count+1})", "content": thinking_content}
             )
-        st.session_state.current_turn_intermediate_steps.append(
-            {"type": "action_parsed", "title": f"🛠️ Action Parsed (Step {step_count+1})", "content": action_details_parsed}
-        )
+        # st.session_state.current_turn_intermediate_steps.append(
+        #     {"type": "action_parsed", "title": f"🛠️ Action Parsed (Step {step_count+1})", "content": action_details_parsed}
+        # )
 
         tool_name_from_parse = action_details_parsed.get("tool_name")
         tool_params_from_parse = action_details_parsed.get("parameters", {})
