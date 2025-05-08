@@ -525,6 +525,14 @@ st.session_state.is_debug_mode = st.sidebar.checkbox(
     help="开启后，控制台会输出详细的 Agent 运行日志，聊天界面会显示 Agent 的思考过程和工具调用详情。"
 )
 
+if 'auto_expand_agent_process' not in st.session_state:
+    st.session_state.auto_expand_agent_process = True # 默认自动展开最新的思考过程 
+st.session_state.auto_expand_agent_process = st.sidebar.toggle( # 或者 st.checkbox
+    "Auto-expand latest agent process",
+    value=st.session_state.auto_expand_agent_process,
+    help="开启后，最新的 Agent 处理步骤详情将默认展开。关闭则默认折叠。"
+)
+
 def initialize_agent(force_reinit=False):
     model_name = MODEL_INFO['model_name']
     api_key = MODEL_INFO['api_key']
@@ -556,7 +564,8 @@ if current_system_prompt != st.session_state.system_prompt:
     st.session_state.system_prompt = current_system_prompt
     initialize_agent(force_reinit=True)
     st.session_state.messages = []
-    st.rerun()
+    st.rerun()   
+
 initialize_agent()
 
 if 'agent_is_waiting_for_input' not in st.session_state: st.session_state.agent_is_waiting_for_input = False
@@ -622,9 +631,14 @@ for i, msg_data in enumerate(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]):
     with st.chat_message(msg_data["role"]):
         if msg_data["role"] == "assistant" and "intermediate_steps" in msg_data and msg_data["intermediate_steps"]:
             is_last_message = (i == len(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]) - 1)
-            expanded_default = is_last_message and not st.session_state.agent_is_waiting_for_input
+            if st.session_state.auto_expand_agent_process:
+                # 如果用户开启了自动展开，则根据是否是最后一条消息且Agent非等待状态来决定
+                expanded_default = is_last_message and not st.session_state.agent_is_waiting_for_input
+            else:
+                # 如果用户关闭了自动展开，则始终默认折叠
+                expanded_default = False
 
-            with st.expander("查看智能体的所有执行步骤👀", expanded=expanded_default):
+            with st.expander("查看智能体的所有执行步骤和工具返回信息 👀", expanded=expanded_default):
                 for step in msg_data["intermediate_steps"]:
                     step_type = step.get("type", "unknown")
                     step_title = step.get("title", step_type.replace("_", " ").title())
