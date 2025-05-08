@@ -553,7 +553,7 @@ if st.sidebar.button("New Conversation"):
     st.rerun()
 
 st.title("Weather Agent Chatbot 🤖🌦️")
-st.markdown(f"Using Model: `{MODEL_INFO['model_name']}` (Mocked Behavior)")
+st.markdown(f"Using Model: `{MODEL_INFO['model_name']}`")
 
 # Display chat history from st.session_state.messages (UI display history)
 for i, msg_data in enumerate(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]): 
@@ -667,8 +667,7 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
 
         is_interactive, tool_result_payload, executed_action_details = agent.execute_action(action_details_parsed)
         
-        tool_calling_ui_placeholder.empty() 
-        ephemeral_message_placeholder.empty()
+       
 
         st.session_state.current_turn_intermediate_steps.append(
             {"type": "action_executed", "title": f"⚙️ Action Executed (Step {step_count+1})", "content": executed_action_details}
@@ -714,6 +713,9 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
                 {"type": "error", "title": "❌ Agent Logic Error", "content": final_message_for_ui}
             )
             break
+    
+    tool_calling_ui_placeholder.empty() 
+    ephemeral_message_placeholder.empty()
     
     assistant_response_for_ui_history = {
         "role": "assistant",
