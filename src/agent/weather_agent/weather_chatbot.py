@@ -26,16 +26,10 @@ except ImportError:
 load_dotenv()
 
 # --- Agent Code (Slightly Modified for Streamlit) ---
-class Memory:
-    def __init__(self):
-        self.tag: Any = None
-        self.weight: Any = None
-        self.description: Any = None
 
 class BaseAgent:
     def __init__(self, messages: List[Dict[str, Any]], system_prompt: str, model_name: str, api_key: str, base_url: str, temperature: float = 0.2, num_retries: int = 3, is_debug: bool = True):
         self.is_debug = is_debug
-        self.memory: Dict[str, List[Memory]] = {}
         self.messages = messages # Initial messages
         self.system_prompt = system_prompt
         self.model_name = model_name
@@ -484,7 +478,6 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
 MAX_MESSAGES_DISPLAY = 50
 DEFAULT_SYSTEM_PROMPT = weather_system_prompt_cot if 'weather_system_prompt_cot' in globals() else "You are a helpful weather assistant."
 
-
 class ModelChoice(StrEnum):
     DEEPSEEK = "deepseek-chat"
     OPENER_ROUTER_GEMINI = 'open-router-gemini-flash'
@@ -566,6 +559,39 @@ if st.sidebar.button("New Conversation"):
 st.title("Weather Agent Chatbot 🤖🌦️")
 st.markdown(f"Using Model: `{MODEL_INFO['model_name']}`")
 
+# --- Initial Conversation Starters ---
+INITIAL_PROMPTS = [
+    "今天长沙的天气怎么样？",
+    "未来三天上海会下雨吗？",
+    "给我推荐一些适合本周末在深圳进行的户外活动（基于天气）。",
+    "查询广州当前空气质量指数。",
+    "山东泰山明天和后天的天气预报是？"
+]
+
+if not st.session_state.messages: # Only show if chat is empty
+    st.markdown("你好！我是天气智能助手。你可以问我关于天气的问题，或者试试下面的常见问题：")
+    
+    # Create columns for a better layout, e.g., 2 or 3 buttons per row
+    # Adjust the number of columns based on how many prompts you have
+    num_cols = 2 
+    cols = st.columns(num_cols)
+    for i, prompt_text in enumerate(INITIAL_PROMPTS):
+        button_key = f"initial_prompt_{i}"
+        # Use use_container_width for buttons to fill column width
+        if cols[i % num_cols].button(prompt_text, key=button_key, use_container_width=True):
+            # This will be picked up by the input handling logic below
+            # We can reuse the 'clicked_suggestion' logic or a new state var
+            # For simplicity, let's assume it sets current_run_user_input directly
+            # and then the existing logic handles it.
+            # To integrate with existing logic:
+            st.session_state.clicked_suggestion = prompt_text 
+            if st.session_state.is_debug_mode:
+                print(f"Initial prompt button '{prompt_text}' clicked.")
+            # A rerun is needed for the input logic to pick up clicked_suggestion
+            st.rerun() 
+    st.markdown("---") # Add a separator
+
+# ... (现有聊天记录显示代码) ...
 # Display chat history from st.session_state.messages (UI display history)
 for i, msg_data in enumerate(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]): 
     with st.chat_message(msg_data["role"]):
@@ -626,13 +652,13 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
         
         ephemeral_message_placeholder = st.empty() 
         with ephemeral_message_placeholder.chat_message("assistant", avatar="⏳"):
-            expander_title = f"🧠 LLM Thinking (Step {step_count + 1} - Streaming)"
+            expander_title = f"🧠 LLM 思考中... (步骤 {step_count + 1})"
             if step_count == 0 and initial_user_input: expander_title = "🧠 LLM Initial Response (Streaming)"
             elif step_count > 0: expander_title = f"🧠 LLM Processing Tool Result (Step {step_count + 1} - Streaming)"
 
             with st.expander(expander_title, expanded=True):
                 stream_display_placeholder = st.empty()
-                stream_display_placeholder.markdown("▍")
+                stream_display_placeholder.markdown("正在连接语言模型并获取回应... ▍")
                 try:
                     for chunk in agent.get_assistant_response_stream():
                         llm_full_response_this_step += chunk
@@ -787,16 +813,18 @@ if st.session_state.agent_is_waiting_for_input and not st.session_state.new_user
     if interactive_data and 'action_details' in interactive_data:
         suggestions = interactive_data.get("suggestions", [])
         if suggestions:
-            st.markdown("Or choose a suggestion:")
-            cols = st.columns(min(len(suggestions), 5)) 
+            st.markdown("💡 **或者，您可以选择以下建议之一：**") # Make suggestions more prominent
+            cols = st.columns(min(len(suggestions), 4)) # Max 4 suggestions per row
             action_tool_name = interactive_data['action_details'].get('tool_name', 'followup')
             for i, suggestion_text in enumerate(suggestions):
-                button_key = f"suggest_btn_{action_tool_name}_{i}"
-                if cols[i % len(cols)].button(suggestion_text, key=button_key):
+                button_key = f"suggest_btn_{action_tool_name}_{i}_{suggestion_text[:20]}" # More unique key
+                if cols[i % len(cols)].button(suggestion_text, key=button_key, use_container_width=True):
                     st.session_state.clicked_suggestion = suggestion_text
                     if st.session_state.is_debug_mode:
                         print(f"Suggestion button '{suggestion_text}' clicked. Will be processed on next run.")
-                    st.rerun() # This click sets clicked_suggestion, script reruns, top input logic catches it.
+                    st.rerun()
+        # else: # If no suggestions, the chat_input is the primary way to respond
+        #     st.markdown("_Agent 正在等待您的回复..._") # Subtle reminder
     elif st.session_state.is_debug_mode:
         print("Warning: agent_is_waiting_for_input is True, but interactive_tool_data is not as expected.")
 
