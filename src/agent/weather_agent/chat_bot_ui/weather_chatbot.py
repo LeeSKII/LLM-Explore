@@ -410,7 +410,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         location = self.format_location(location)
         return self._make_qweather_request('/v7/grid-weather/now', {'location': location})
 
-    def gird_weather_forecast(self, location:str, forecast_days:str="3"): # Corrected typo
+    def grid_weather_forecast(self, location:str, forecast_days:str="3"):
         location = self.format_location(location)
         valid_days_map = {"3": "3d", "7": "7d"}
         if forecast_days not in valid_days_map:
@@ -418,7 +418,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         path_segment = valid_days_map[forecast_days]
         return self._make_qweather_request(f'/v7/grid-weather/{path_segment}', {'location': location})
 
-    def grid_weather_hourly_forecast(self, location:str, hours:str="24"): # Corrected typo
+    def grid_weather_hourly_forecast(self, location:str, hours:str="24"):
         location = self.format_location(location)
         valid_hours_map = {"24": "24h", "72": "72h"}
         if hours not in valid_hours_map:
