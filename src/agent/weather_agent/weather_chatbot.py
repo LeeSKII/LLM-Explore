@@ -470,22 +470,22 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
 
 # --- Streamlit App ---
 
-MAX_MESSAGES_DISPLAY = 50 
+MAX_MESSAGES_DISPLAY = 50
 DEFAULT_SYSTEM_PROMPT = weather_system_prompt_cot
 
-class ModelChoice(StrEnum): # ... (as before)
+class ModelChoice(StrEnum):
     DEEPSEEK = "deepseek-chat"
     OPENER_ROUTER_GEMINI = 'open-router-gemini-flash'
-MODEL_CONFIGS = { # ... (as before)
+MODEL_CONFIGS = {
     ModelChoice.DEEPSEEK: {
         'model_name': 'deepseek/deepseek-chat',
-        'api_key': os.getenv("DEEPSEEK_API_KEY"),
-        'base_url': os.getenv("DEEPSEEK_API_BASE_URL")
+        'api_key': os.getenv("DEEPSEEK_API_KEY", "YOUR_DEEPSEEK_API_KEY"), # Provide default for mock
+        'base_url': os.getenv("DEEPSEEK_API_BASE_URL", "YOUR_DEEPSEEK_BASE_URL")
     },
     ModelChoice.OPENER_ROUTER_GEMINI: {
         'model_name': 'openrouter/google/gemini-flash-1.5',
-        'api_key': os.getenv("OPENROUTER_API_KEY"),
-        'base_url': os.getenv("OPENROUTER_BASE_URL")
+        'api_key': os.getenv("OPENROUTER_API_KEY", "YOUR_OPENROUTER_API_KEY"),
+        'base_url': os.getenv("OPENROUTER_BASE_URL", "YOUR_OPENROUTER_BASE_URL")
     }
 }
 
@@ -495,12 +495,12 @@ selected_model_key = st.sidebar.selectbox("Choose a Model:", options=list(ModelC
 MODEL_INFO = MODEL_CONFIGS[selected_model_key]
 
 if 'system_prompt' not in st.session_state: st.session_state.system_prompt = DEFAULT_SYSTEM_PROMPT
-current_system_prompt = st.sidebar.text_area("System Prompt:", value=st.session_state.system_prompt, height=600)
+current_system_prompt = st.sidebar.text_area("System Prompt:", value=st.session_state.system_prompt, height=300) # Reduced height for mock
 
-if 'is_debug_mode' not in st.session_state: st.session_state.is_debug_mode = True 
+if 'is_debug_mode' not in st.session_state: st.session_state.is_debug_mode = True
 st.session_state.is_debug_mode = st.sidebar.checkbox("Enable Agent Debug Mode", value=st.session_state.is_debug_mode)
 
-def initialize_agent(force_reinit=False): # ... (as before)
+def initialize_agent(force_reinit=False):
     model_name = MODEL_INFO['model_name']
     api_key = MODEL_INFO['api_key']
     base_url = MODEL_INFO['base_url']
@@ -516,44 +516,52 @@ def initialize_agent(force_reinit=False): # ... (as before)
                        st.session_state.weather_agent.is_debug != st.session_state.is_debug_mode
     if agent_needs_init:
         if st.session_state.is_debug_mode: print("Re-initializing WeatherAgent.")
-        st.session_state.weather_agent = WeatherAgent(
-            messages=[], system_prompt=st.session_state.system_prompt, model_name=model_name,
+        st.session_state.weather_agent = WeatherAgent( # Using Mock Agent
+            messages=[{"role": "system", "content": st.session_state.system_prompt}], # Agent needs system prompt in its history
+            system_prompt=st.session_state.system_prompt, model_name=model_name,
             api_key=api_key, base_url=base_url, is_debug=st.session_state.is_debug_mode
         )
+        # Reset call count for mock agent on re-init
+        if hasattr(st.session_state.weather_agent, 'call_count'):
+            st.session_state.weather_agent.call_count = 0
     return st.session_state.weather_agent
 
-if 'messages' not in st.session_state: st.session_state.messages = [] 
+if 'messages' not in st.session_state: st.session_state.messages = []
 if current_system_prompt != st.session_state.system_prompt:
     st.session_state.system_prompt = current_system_prompt
     initialize_agent(force_reinit=True)
-    st.session_state.messages = [] 
+    st.session_state.messages = []
     st.rerun()
 initialize_agent()
 
 if 'agent_is_waiting_for_input' not in st.session_state: st.session_state.agent_is_waiting_for_input = False
 if 'interactive_tool_data' not in st.session_state: st.session_state.interactive_tool_data = None
 if 'current_turn_intermediate_steps' not in st.session_state: st.session_state.current_turn_intermediate_steps = []
-# Placeholder for live streaming display elements for the current turn
-if 'live_stream_ui_elements' not in st.session_state: st.session_state.live_stream_ui_elements = []
 
 
 if st.sidebar.button("New Conversation"):
-    st.session_state.messages = [] 
-    initialize_agent(force_reinit=True) 
+    st.session_state.messages = []
+    initialize_agent(force_reinit=True)
     st.session_state.agent_is_waiting_for_input = False
     st.session_state.interactive_tool_data = None
     st.session_state.current_turn_intermediate_steps = []
-    st.session_state.live_stream_ui_elements = []
     st.rerun()
 
 st.title("Weather Agent Chatbot 🤖🌦️")
-st.markdown(f"Using Model: `{MODEL_INFO['model_name']}`")
+st.markdown(f"Using Model: `{MODEL_INFO['model_name']}` (Mocked Behavior)")
 
 # Display chat history from st.session_state.messages (UI display history)
-for i, msg_data in enumerate(st.session_state.messages):
+for i, msg_data in enumerate(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]): # Display only last N messages
     with st.chat_message(msg_data["role"]):
         if msg_data["role"] == "assistant" and "intermediate_steps" in msg_data and msg_data["intermediate_steps"]:
-            expanded_default = (i == len(st.session_state.messages) - 1 and not st.session_state.agent_is_waiting_for_input)
+            # Expand the last assistant message's process if it's not waiting for input OR if it just completed.
+            # If it's waiting for input, we usually want to see its question, not necessarily its full thought process expanded by default.
+            # Let's refine this: expand if it's the very last message AND agent is NOT waiting.
+            # Or if it IS waiting, but it's the one that asked the question.
+            is_last_message = (i == len(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]) - 1)
+            
+            expanded_default = is_last_message and not st.session_state.agent_is_waiting_for_input
+
             with st.expander("View Agent's Process", expanded=expanded_default):
                 for step in msg_data["intermediate_steps"]:
                     step_type = step.get("type", "unknown")
@@ -561,7 +569,7 @@ for i, msg_data in enumerate(st.session_state.messages):
                     step_content = step.get("content", "")
                     st.markdown(f"**{step_title}**")
                     if step_type == "llm_raw_response": st.code(step_content, language='xml')
-                    elif step_type in ["thinking", "info"]: st.markdown(f"```\n{step_content}\n```")
+                    elif step_type in ["thinking", "info", "error"]: st.markdown(f"```\n{step_content}\n```")
                     elif step_type in ["action_parsed", "action_executed"]: st.json(step_content)
                     elif step_type == "tool_result_payload":
                         if isinstance(step_content, list):
@@ -569,35 +577,37 @@ for i, msg_data in enumerate(st.session_state.messages):
                                 item_text = item_data.get('text', json.dumps(item_data))
                                 st.markdown(f"- Part {item_idx+1} ({item_data.get('type', 'unknown')}):")
                                 try:
-                                    parsed_json = json.loads(item_text.split("Result: ", 1)[-1] if "Result: " in item_text else item_text)
-                                    st.json(parsed_json)
-                                except: st.markdown(f"  ```\n  {item_text}\n  ```")
-                        else: st.markdown(f"```\n{json.dumps(step_content, indent=2)}\n```")
-                    else: st.write(step_content)
+                                    # Attempt to parse if it looks like JSON within a string
+                                    parsed_json_candidate = item_text
+                                    if "Result: " in item_text: # Specific for some mock payloads
+                                        parsed_json_candidate = item_text.split("Result: ", 1)[-1]
+                                    
+                                    # Check if it's already a dict (from direct JSON step_content)
+                                    if isinstance(parsed_json_candidate, dict):
+                                        st.json(parsed_json_candidate)
+                                    else: # Try to load string as JSON
+                                        parsed_json = json.loads(parsed_json_candidate)
+                                        st.json(parsed_json)
+                                except (json.JSONDecodeError, TypeError):
+                                    st.markdown(f"  ```\n  {item_text}\n  ```")
+                        else: # If step_content is not a list but some other structure
+                            st.markdown(f"```\n{json.dumps(step_content, indent=2)}\n```")
+                    else: st.write(step_content) # Fallback for unknown step types
         main_content = msg_data.get("content_display", msg_data["content"])
-        if isinstance(main_content, list):
+        if isinstance(main_content, list): # Handle Claude-style list of content blocks
             for block in main_content:
                 if isinstance(block, dict) and block.get("type") == "text": st.markdown(block["text"])
-                else: st.markdown(f"```json\n{json.dumps(block, indent=2)}\n```")
-        else: st.markdown(str(main_content))
+                else: st.markdown(f"```json\n{json.dumps(block, indent=2)}\n```") # Display other blocks as JSON
+        else:
+            st.markdown(str(main_content))
 
-# --- Ephemeral Streaming Area ---
-# This container will hold the live streaming elements for the current LLM call.
-# It's managed outside the main message loop to allow for immediate updates.
-# This will be cleared implicitly by st.rerun() when the turn concludes.
-# Or we can manage it more explicitly if needed.
-# For now, we will create these elements *inside* the run_full_agent_turn_and_manage_ui function.
 
 def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
-    """
-    Manages the agent's turn, including displaying live LLM streams
-    and collecting intermediate steps for the final consolidated display.
-    This function will append the final assistant message to st.session_state.messages.
-    """
     agent: WeatherAgent = st.session_state.weather_agent
-    st.session_state.current_turn_intermediate_steps = [] # Reset for this turn
+    st.session_state.current_turn_intermediate_steps = []
 
     if initial_user_input:
+        # Add to agent's internal history (system prompt is already there)
         agent.messages.append({"role": "user", "content": initial_user_input})
         if agent.is_debug: print(f"Appended user message to agent's internal history: '{initial_user_input}'")
         st.session_state.current_turn_intermediate_steps.append(
@@ -605,25 +615,22 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
         )
 
     MAX_AGENT_STEPS = 7
-    final_status = "error" # Default status
-    final_message_for_ui = "Agent processing encountered an issue." # Default message
+    final_status = "error"
+    final_message_for_ui = "Agent processing encountered an issue."
 
-    # --- Main Agent Processing Loop with UI Streaming ---
     for step_count in range(MAX_AGENT_STEPS):
         if agent.is_debug: print(f"Agent processing step {step_count + 1} of this turn.")
-
         llm_full_response_this_step = ""
         
-        # --- 1. UI for Live LLM Stream (Ephemeral) ---
-        with st.chat_message("assistant", avatar="⏳"): 
+        ephemeral_message_placeholder = st.empty() # Create a placeholder for the entire ephemeral message
+        with ephemeral_message_placeholder.chat_message("assistant", avatar="⏳"):
             expander_title = f"🧠 LLM Thinking (Step {step_count + 1} - Streaming)"
-            # ... (expander title logic as before) ...
             if step_count == 0 and initial_user_input: expander_title = "🧠 LLM Initial Response (Streaming)"
             elif step_count > 0: expander_title = f"🧠 LLM Processing Tool Result (Step {step_count + 1} - Streaming)"
 
             with st.expander(expander_title, expanded=True):
                 stream_display_placeholder = st.empty()
-                stream_display_placeholder.markdown("▍") 
+                stream_display_placeholder.markdown("▍")
                 try:
                     for chunk in agent.get_assistant_response_stream():
                         llm_full_response_this_step += chunk
@@ -631,16 +638,15 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
                     stream_display_placeholder.markdown(llm_full_response_this_step)
                 except Exception as e:
                     stream_display_placeholder.error(f"LLM API Error during stream: {e}")
-                    llm_full_response_this_step = f"<thinking>LLM API Error: {e}</thinking><action><attempt_completion><result>I encountered an issue with the Language Model connection.</result></attempt_completion></action>"
+                    llm_full_response_this_step = f"<thinking>LLM API Error: {e}</thinking><action><tool_name>attempt_completion</tool_name><parameters><result>I encountered an issue with the Language Model connection.</result></parameters></action>"
         
-        # Add LLM raw response to agent's history and intermediate steps for UI
         st.session_state.current_turn_intermediate_steps.append(
             {"type": "llm_raw_response", "title": f"🧠 LLM Raw Output (Step {step_count+1})", "content": llm_full_response_this_step}
         )
+        # Add LLM's raw response to agent's *internal* message history
         agent.messages.append({"role": "assistant", "content": llm_full_response_this_step})
         if agent.is_debug: print(f"Appended assistant (LLM) raw response (Step {step_count+1}) to agent's internal history.")
 
-        # --- 2. Parse LLM Output ---
         thinking_content, action_details_parsed = agent.parse_input_text(llm_full_response_this_step)
         if thinking_content:
             st.session_state.current_turn_intermediate_steps.append(
@@ -652,156 +658,158 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
 
         tool_name_from_parse = action_details_parsed.get("tool_name")
         tool_params_from_parse = action_details_parsed.get("parameters", {})
-
-        # --- 3. Display "Tool Calling" Info (Ephemeral) IF applicable ---
-        # We display this before executing the action, especially if action might be slow.
-        # This is also an ephemeral message.
-        tool_calling_ui_placeholder = st.empty() # Placeholder for this message
-
+        
+        tool_calling_ui_placeholder = st.empty()
         if tool_name_from_parse and tool_name_from_parse not in ["attempt_completion", "ask_followup_question"]:
-            # It's a tool that will actually be "executed" (e.g., an API call)
             tool_call_info_md = f"⚙️ Preparing to use tool: **`{tool_name_from_parse}`**"
             if tool_params_from_parse:
-                # Display params nicely, truncate if too long for this ephemeral display
                 params_str = json.dumps(tool_params_from_parse)
                 if len(params_str) > 100: params_str = params_str[:100] + "..."
                 tool_call_info_md += f" with parameters: `{params_str}`"
-            
-            with tool_calling_ui_placeholder.chat_message("system", avatar="⚙️"): # Or use assistant avatar
+            with tool_calling_ui_placeholder.chat_message("system", avatar="⚙️"):
                 st.markdown(tool_call_info_md)
-            
-            # Also add this to the consolidated steps for the final expander
             st.session_state.current_turn_intermediate_steps.append(
-                {"type": "info", "title": f"🛠️ Tool Call Initiated (Step {step_count+1})", 
+                {"type": "info", "title": f"🛠️ Tool Call Initiated (Step {step_count+1})",
                  "content": f"Tool: {tool_name_from_parse}, Parameters: {json.dumps(tool_params_from_parse, indent=2)}"}
             )
-        elif "error" in action_details_parsed and tool_name_from_parse != "attempt_completion": # If parsing itself had an error
+        elif "error" in action_details_parsed and tool_name_from_parse != "attempt_completion":
              with tool_calling_ui_placeholder.chat_message("system", avatar="⚠️"):
                  st.warning(f"⚠️ Error parsing action from LLM: {action_details_parsed.get('error', 'Unknown parsing error')}. Agent will attempt to recover or complete.")
 
-
-        # --- 4. Execute Action ---
-        # This might take time if it's a real API call
         is_interactive, tool_result_payload, executed_action_details = agent.execute_action(action_details_parsed)
         
-        # Now that action is executed, we can clear the "Preparing to use tool" ephemeral message
-        # The results/next steps will appear in subsequent UI updates (next LLM stream or final message)
-        tool_calling_ui_placeholder.empty() 
+        tool_calling_ui_placeholder.empty() # Clear "Preparing to use tool"
+        # Clear the ephemeral LLM streaming message *after* action is executed and parsed.
+        # The final assistant message will consolidate everything.
+        ephemeral_message_placeholder.empty()
 
-        # Add executed action details and payload to consolidated steps
+
         st.session_state.current_turn_intermediate_steps.append(
             {"type": "action_executed", "title": f"⚙️ Action Executed (Step {step_count+1})", "content": executed_action_details}
         )
-        if tool_result_payload: # tool_result_payload might be empty for ask_followup or some errors
+        if tool_result_payload:
             st.session_state.current_turn_intermediate_steps.append(
                 {"type": "tool_result_payload", "title": f"✨ Tool Result Payload (Step {step_count+1})", "content": tool_result_payload}
             )
 
-        tool_name_executed = executed_action_details.get("tool_name") # This is tool name *after* execution (could be a fallback)
+        tool_name_executed = executed_action_details.get("tool_name")
         tool_params_executed = executed_action_details.get("parameters", {})
 
-        # --- 5. Handle flow based on action outcome ---
         if tool_name_executed == "attempt_completion":
             final_status = "completion"
             final_message_for_ui = tool_params_executed.get("result", "Completed.")
-            agent.build_tool_result_message_for_llm(tool_result_payload, executed_action_details)
-            break 
+            # We don't add tool_result to LLM for attempt_completion as it's the final step for LLM.
+            # The agent.messages already contains the LLM's action with attempt_completion.
+            break
 
         elif is_interactive and tool_name_executed == "ask_followup_question":
             final_status = "interactive"
             final_message_for_ui = tool_params_executed.get("question", "Need more info.")
-            # ... (set interactive_tool_data as before) ...
             st.session_state.agent_is_waiting_for_input = True
             st.session_state.interactive_tool_data = {
-                "action_details": executed_action_details,
+                "action_details": executed_action_details, # Contains tool_name, original params (question, suggestions)
                 "prompt_to_user": final_message_for_ui,
-                "suggestions": tool_params_executed.get("suggestions", []) # Ensure suggestions are passed
+                "suggestions": tool_params_executed.get("suggestions", [])
             }
-            agent.build_tool_result_message_for_llm(tool_result_payload, executed_action_details)
-            break 
+            # For ask_followup_question, the LLM has *asked* the question.
+            # We don't immediately send a tool_result back to LLM.
+            # We wait for user input. That input will then be formatted as a tool_result.
+            # The agent.messages already has the LLM's <action>ask_followup_question</action>.
+            break
         
-        elif not is_interactive: # Non-interactive tool was called and executed
+        elif not is_interactive:
+            # Non-interactive tool executed, feed its result back to agent's internal history for next LLM call
             agent.build_tool_result_message_for_llm(tool_result_payload, executed_action_details)
             if agent.is_debug: print(f"Continuing loop after non-interactive tool '{tool_name_executed}' (Step {step_count+1})")
             st.session_state.current_turn_intermediate_steps.append(
                 {"type": "info", "title": f"ℹ️ Looping (End of Step {step_count+1})", "content": f"Feeding result of '{tool_name_executed}' back to LLM."}
             )
-            if step_count == MAX_AGENT_STEPS - 1: # Check if it's the last iteration
+            if step_count == MAX_AGENT_STEPS - 1:
                 final_status = "error"
-                final_message_for_ui = "Max steps reached during tool processing loop."
-                # Attempt to build a completion message for the agent's history
-                agent.build_tool_result_message_for_llm(
-                     [], {"tool_name": "attempt_completion", "parameters": {"result": final_message_for_ui}}, ""
+                final_message_for_ui = "Max steps reached during tool processing loop. Cannot complete."
+                st.session_state.current_turn_intermediate_steps.append(
+                    {"type": "error", "title": "❌ Max Steps Reached", "content": final_message_for_ui}
                 )
-        else: 
+                # No explicit message to agent here, as the loop ends. The final_message_for_ui will be displayed.
+        else:
             final_status = "error"
             final_message_for_ui = f"Unhandled agent state: tool='{tool_name_executed}', interactive={is_interactive} (Step {step_count+1})"
-            # ... (add error to intermediate_steps and attempt to build completion message for agent history) ...
             st.session_state.current_turn_intermediate_steps.append(
                 {"type": "error", "title": "❌ Agent Logic Error", "content": final_message_for_ui}
-            )
-            agent.build_tool_result_message_for_llm(
-                [], {"tool_name": "attempt_completion", "parameters": {"result": final_message_for_ui}}, ""
             )
             break
     # --- End of Agent Processing Loop ---
 
-    # ... (rest of the function: append final assistant message to st.session_state.messages) ...
+    # The final assistant message for the UI chat history
     assistant_response_for_ui_history = {
         "role": "assistant",
-        "content": final_message_for_ui, 
-        "content_display": final_message_for_ui,
-        "intermediate_steps": list(st.session_state.current_turn_intermediate_steps)
+        "content": final_message_for_ui, # This is the actual content to be stored for the LLM if it were a real turn
+        "content_display": final_message_for_ui, # This is what user sees as the main response
+        "intermediate_steps": list(st.session_state.current_turn_intermediate_steps) # Copy
     }
     st.session_state.messages.append(assistant_response_for_ui_history)
 
     if len(st.session_state.messages) > MAX_MESSAGES_DISPLAY:
         st.session_state.messages = st.session_state.messages[-MAX_MESSAGES_DISPLAY:]
     
-    # The st.rerun() in the main input handling will redraw the chat using st.session_state.messages,
-    # effectively "clearing" the ephemeral streaming elements and showing the final message with its expander.
+    st.session_state.current_turn_intermediate_steps = [] # Clear for next turn
 
 
 # --- Input Handling ---
-user_prompt_input = None # Initialize
+user_prompt_input = None
 
+# 1. Check for clicked suggestion first
 if 'clicked_suggestion' in st.session_state and st.session_state.clicked_suggestion:
     user_prompt_input = st.session_state.clicked_suggestion
+    if st.session_state.is_debug_mode: print(f"Input from clicked suggestion: {user_prompt_input}")
     del st.session_state.clicked_suggestion # Consume it
-else:
+    # A rerun will happen from the button click itself if this path is taken.
+    # The subsequent `if user_prompt_input:` block will handle it.
+
+# 2. If no suggestion was clicked, get input from the main chat_input
+# This will be None if nothing was submitted in the current script run.
+# It will have a value if the user typed and pressed Enter OR if a suggestion button caused a rerun.
+if user_prompt_input is None: # Only check chat_input if a suggestion wasn't already processed
+    # The placeholder text for chat_input will be generic.
+    # The agent's question (if any) is already visible as the last message in the chat history.
     user_prompt_input = st.chat_input("What would you like to know about the weather?")
+    if user_prompt_input and st.session_state.is_debug_mode:
+        print(f"Input from chat_input: {user_prompt_input}")
 
 
+# --- Process Input ---
 if st.session_state.agent_is_waiting_for_input:
     interactive_data = st.session_state.interactive_tool_data
     
-    # Display the agent's question (already part of the last assistant message)
-    # st.info(f"Agent asks: {interactive_data['prompt_to_user']}") # Can be redundant
-
-    # Display suggestion buttons if available
+    # Display suggestion buttons if available for the interactive follow-up
     suggestions = interactive_data.get("suggestions", [])
     if suggestions:
-        st.write("Or choose a suggestion:") # Or some other introductory text
-        cols = st.columns(len(suggestions) if len(suggestions) <= 5 else 5) # Max 5 buttons per row
+        # Create columns for buttons. Use a simple layout for now.
+        # Text before buttons can be useful.
+        st.markdown("Or choose a suggestion:")
+        cols = st.columns(min(len(suggestions), 5)) # Max 5 suggestions per row
         for i, suggestion_text in enumerate(suggestions):
-            if cols[i % len(cols)].button(suggestion_text, key=f"suggest_btn_{i}"):
+            # Use a unique key for each button to avoid conflicts
+            if cols[i % len(cols)].button(suggestion_text, key=f"suggest_btn_{interactive_data['action_details'].get('tool_name', 'followup')}_{i}"):
                 st.session_state.clicked_suggestion = suggestion_text
-                # Important: Rerun to process the click immediately.
-                # The user_prompt_input at the top will pick this up.
-                st.rerun() 
+                if st.session_state.is_debug_mode: print(f"Suggestion button '{suggestion_text}' clicked.")
+                # When a button is clicked, Streamlit reruns the script.
+                # The `user_prompt_input` logic at the top will pick up `st.session_state.clicked_suggestion`.
+                st.rerun()
     
-    # The chat_input for free-form response is now handled by user_prompt_input logic at the top
-    # If user_prompt_input got a value from a button click, that will be processed.
-    # If user typed into chat_input, that will be processed.
-
-    if user_prompt_input: # This will be true if button was clicked or user typed and pressed Enter
+    # If user_prompt_input has a value (either from a button click that caused a rerun, or from typing into the main chat_input)
+    if user_prompt_input:
+        if st.session_state.is_debug_mode: print(f"Processing interactive response: {user_prompt_input}")
         user_interactive_response = user_prompt_input
 
+        # Add user's interactive response to UI chat history
         st.session_state.messages.append({"role": "user", "content": user_interactive_response, "content_display": user_interactive_response})
+        
         agent: WeatherAgent = st.session_state.weather_agent
+        # This response is the "result" of the "ask_followup_question" tool
         agent.build_tool_result_message_for_llm(
-            tool_result_payload=[],
-            action_details=interactive_data['action_details'],
+            tool_result_payload=[], # No payload from user text, it IS the payload
+            action_details=interactive_data['action_details'], # The original action that asked the question
             user_interactive_input=user_interactive_response
         )
         if agent.is_debug: print("Built tool result from user's interactive input and added to agent's internal history.")
@@ -809,36 +817,30 @@ if st.session_state.agent_is_waiting_for_input:
         st.session_state.agent_is_waiting_for_input = False # Reset waiting state
         st.session_state.interactive_tool_data = None     # Clear interactive data
         
-        run_full_agent_turn_and_manage_ui(initial_user_input=None) # Continue turn
+        # Agent continues its turn with the user's interactive input
+        run_full_agent_turn_and_manage_ui(initial_user_input=None) # `None` because user input already added to agent.messages
         st.rerun()
 
-elif user_prompt_input: # Standard new user query (or from a suggestion button if not in interactive mode, though less likely)
+elif user_prompt_input: # This means it's a new query (agent was not waiting for input)
+    if st.session_state.is_debug_mode: print(f"Processing new query: {user_prompt_input}")
+    # Add user's new query to UI chat history
     st.session_state.messages.append({"role": "user", "content": user_prompt_input, "content_display": user_prompt_input})
-    run_full_agent_turn_and_manage_ui(initial_user_input=user_prompt_input) # Start new turn
+    
+    # Agent starts a new turn with this initial user input
+    run_full_agent_turn_and_manage_ui(initial_user_input=user_prompt_input)
     st.rerun()
 
-if st.session_state.agent_is_waiting_for_input:
-    interactive_data = st.session_state.interactive_tool_data
-    user_interactive_response = st.chat_input(
-        f"Your response to: {interactive_data['prompt_to_user']}",
-        key=f"interactive_input_{interactive_data['action_details'].get('tool_name', 'default_key')}"
-    )
-    if user_interactive_response:
-        st.session_state.messages.append({"role": "user", "content": user_interactive_response, "content_display": user_interactive_response})
-        agent: WeatherAgent = st.session_state.weather_agent
-        agent.build_tool_result_message_for_llm(
-            tool_result_payload=[],
-            action_details=interactive_data['action_details'],
-            user_interactive_input=user_interactive_response
-        )
-        if agent.is_debug: print("Built tool result from user's interactive input and added to agent's internal history.")
-        st.session_state.agent_is_waiting_for_input = False
-        st.session_state.interactive_tool_data = None
-        
-        run_full_agent_turn_and_manage_ui(initial_user_input=None) # Continue turn
-        st.rerun()
-
-elif user_prompt_input:
-    st.session_state.messages.append({"role": "user", "content": user_prompt_input, "content_display": user_prompt_input})
-    run_full_agent_turn_and_manage_ui(initial_user_input=user_prompt_input) # Start new turn
-    st.rerun()
+# Final check: If still waiting for input (e.g., user hasn't responded yet),
+# ensure the suggestions are visible if the script reruns for other reasons.
+# This block is mostly for ensuring suggestions stay on screen if a rerun happens
+# *before* the user interacts with a suggestion button or the chat input.
+# The actual processing of the input is handled above.
+if st.session_state.agent_is_waiting_for_input and not user_prompt_input:
+    # This case can happen if the script reruns for some reason while waiting,
+    # and no new input was provided in *that specific rerun*.
+    # The suggestions would have been drawn by the block above this `elif`.
+    # So, technically, this block might not be strictly necessary if suggestion drawing
+    # is always inside the `if st.session_state.agent_is_waiting_for_input:` block.
+    # Let's ensure the suggestion display logic is robust within that main `if` block.
+    # The current structure seems to handle it: suggestions are displayed if agent_is_waiting_for_input is true.
+    pass
