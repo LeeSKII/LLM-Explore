@@ -561,7 +561,7 @@ if 'new_user_message_to_process' not in st.session_state:
     st.session_state.new_user_message_to_process = None
 
 
-if st.sidebar.button("New Conversation", help="清除当前对话历史并重置 Agent。"):
+if st.sidebar.button("开始新对话", help="清除当前对话历史并重置 Agent。"):
     st.session_state.messages = []
     initialize_agent(force_reinit=True) # Reinitialize agent with potentially new system prompt
     st.session_state.agent_is_waiting_for_input = False
@@ -585,6 +585,7 @@ INITIAL_PROMPTS = [
 if not st.session_state.messages: # Only show if chat is empty
     st.markdown("你好！我是天气助手智能体，我的运行逻辑完全由AI驱动，自主调用Weather Tools获取真实天气数据，并提供建议。你可以问我关于天气或者任何你感兴趣的问题，或者试试下面的常见问题：")
     st.markdown("*如果觉得Deepseek模型速度不够快，可以尝试侧边栏的模型选择，使用gemini模型，它可以提供更快的响应速度，Even not smarter than Deepseek。* 😂") 
+    st.markdown("❤️ **我们不会记录任何聊天记录。**")
     # Create columns for a better layout, e.g., 2 or 3 buttons per row
     # Adjust the number of columns based on how many prompts you have
     num_cols = 2 
