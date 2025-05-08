@@ -500,6 +500,8 @@ MODEL_CONFIGS = {
     }
 }
 
+# ============sidebar settings=================
+
 st.set_page_config(layout="wide", page_title="Weather Agent Chatbot")
 st.sidebar.title("Agent Settings")
 selected_model_key = st.sidebar.selectbox(
@@ -514,24 +516,30 @@ if 'system_prompt' not in st.session_state: st.session_state.system_prompt = DEF
 current_system_prompt = st.sidebar.text_area(
     "System Prompt:", 
     value=st.session_state.system_prompt, 
-    height=400,
+    height=300,
     help="定义 Agent 的核心行为和角色。修改后会开启新的对话。"
 ) 
 
-if 'is_debug_mode' not in st.session_state: st.session_state.is_debug_mode = False
-st.session_state.is_debug_mode = st.sidebar.checkbox(
-    "Enable Agent Debug Mode", 
-    value=st.session_state.is_debug_mode,
-    help="开启后，控制台会输出详细的 Agent 运行日志，聊天界面会显示 Agent 的思考过程和工具调用详情。"
+if 'model_temperature' not in st.session_state:
+    st.session_state.model_temperature = 0.2 # 默认温度值
+st.session_state.model_temperature = st.sidebar.slider(
+    "模型温度",
+    min_value=0.0,
+    max_value=1.0,
+    value=st.session_state.model_temperature, # 从 session_state 读取当前值
+    step=0.05, # 步长可以根据需要调整
+    help="控制模型输出的随机性。较低的值使输出更具确定性和一致性，较高的值使其更具创造性和多样性。范围 0.0 - 1.0。"
 )
 
 if 'auto_expand_agent_process' not in st.session_state:
-    st.session_state.auto_expand_agent_process = True # 默认自动展开最新的思考过程 
+    st.session_state.auto_expand_agent_process = False # 默认折叠最新的思考过程 
 st.session_state.auto_expand_agent_process = st.sidebar.toggle( # 或者 st.checkbox
-    "Auto-expand latest agent process",
+    "折叠思考过程",
     value=st.session_state.auto_expand_agent_process,
     help="开启后，最新的 Agent 处理步骤详情将默认展开。关闭则默认折叠。"
 )
+
+if 'is_debug_mode' not in st.session_state: st.session_state.is_debug_mode = False
 
 def initialize_agent(force_reinit=False):
     model_name = MODEL_INFO['model_name']
@@ -546,6 +554,7 @@ def initialize_agent(force_reinit=False):
                        'weather_agent' not in st.session_state or \
                        st.session_state.weather_agent.model_name != model_name or \
                        st.session_state.weather_agent.system_prompt != st.session_state.system_prompt or \
+                       st.session_state.weather_agent.temperature != st.session_state.model_temperature or \
                        st.session_state.weather_agent.api_key != api_key or \
                        st.session_state.weather_agent.base_url != base_url or \
                        st.session_state.weather_agent.is_debug != st.session_state.is_debug_mode
@@ -553,7 +562,7 @@ def initialize_agent(force_reinit=False):
         if st.session_state.is_debug_mode: print("Re-initializing WeatherAgent.")
         st.session_state.weather_agent = WeatherAgent( 
             messages=[], 
-            system_prompt=st.session_state.system_prompt, model_name=model_name,
+            system_prompt=st.session_state.system_prompt, model_name=model_name,temperature=st.session_state.model_temperature,
             api_key=api_key, base_url=base_url, is_debug=st.session_state.is_debug_mode
         )
         st.session_state.weather_agent.call_count = 0 # Reset for mock
@@ -584,10 +593,19 @@ if st.sidebar.button("🧐开始新对话", help="👋🏻清除当前对话历�
     st.session_state.current_turn_intermediate_steps = []
     st.session_state.new_user_message_to_process = None # Reset this too
     st.rerun()
-    
+
 st.sidebar.markdown("---") # Add a separator
 
 st.sidebar.markdown("**Author:** *Ski Lee*")
+
+
+st.session_state.is_debug_mode = st.sidebar.checkbox(
+    "Enable Agent Debug Mode", 
+    value=st.session_state.is_debug_mode,
+    help="开启后，控制台会输出详细的 Agent 运行日志，聊天界面会显示 Agent 的思考过程和工具调用详情。"
+)
+
+# ============main chat UI===================
 
 st.title("Weather Agent Chatbot 🤖🌦️")
 st.badge(f"*当前模型: `{MODEL_INFO['model_name']}`*")
