@@ -521,7 +521,7 @@ current_system_prompt = st.sidebar.text_area(
 ) 
 
 if 'model_temperature' not in st.session_state:
-    st.session_state.model_temperature = 0.2 # 默认温度值
+    st.session_state.model_temperature = 0.1 # 默认温度值
 st.session_state.model_temperature = st.sidebar.slider(
     "模型温度",
     min_value=0.0,
@@ -534,7 +534,7 @@ st.session_state.model_temperature = st.sidebar.slider(
 if 'auto_expand_agent_process' not in st.session_state:
     st.session_state.auto_expand_agent_process = False # 默认折叠最新的思考过程 
 st.session_state.auto_expand_agent_process = st.sidebar.toggle( # 或者 st.checkbox
-    "折叠思考过程",
+    "思考过程",
     value=st.session_state.auto_expand_agent_process,
     help="开启后，最新的 Agent 处理步骤详情将默认展开。关闭则默认折叠。"
 )
