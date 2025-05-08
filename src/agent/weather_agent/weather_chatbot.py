@@ -614,7 +614,7 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
             {"type": "info", "title": "ℹ️ User Input Received", "content": f"User asked: {initial_user_input}"}
         )
 
-    MAX_AGENT_STEPS = 7
+    MAX_AGENT_STEPS = 50
     final_status = "error"
     final_message_for_ui = "Agent processing encountered an issue."
 
