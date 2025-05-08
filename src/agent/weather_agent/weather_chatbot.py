@@ -495,7 +495,7 @@ selected_model_key = st.sidebar.selectbox("Choose a Model:", options=list(ModelC
 MODEL_INFO = MODEL_CONFIGS[selected_model_key]
 
 if 'system_prompt' not in st.session_state: st.session_state.system_prompt = DEFAULT_SYSTEM_PROMPT
-current_system_prompt = st.sidebar.text_area("System Prompt:", value=st.session_state.system_prompt, height=300)
+current_system_prompt = st.sidebar.text_area("System Prompt:", value=st.session_state.system_prompt, height=600)
 
 if 'is_debug_mode' not in st.session_state: st.session_state.is_debug_mode = True 
 st.session_state.is_debug_mode = st.sidebar.checkbox("Enable Agent Debug Mode", value=st.session_state.is_debug_mode)
