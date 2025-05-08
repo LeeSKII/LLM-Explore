@@ -496,14 +496,28 @@ MODEL_CONFIGS = {
 
 st.set_page_config(layout="wide", page_title="Weather Agent Chatbot")
 st.sidebar.title("Weather Agent Configuration")
-selected_model_key = st.sidebar.selectbox("Choose a Model:", options=list(ModelChoice), format_func=lambda x: x.value)
+selected_model_key = st.sidebar.selectbox(
+    "Choose a Model:", 
+    options=list(ModelChoice), 
+    format_func=lambda x: x.value,
+    help="选择驱动 Agent 的大语言模型。"
+)
 MODEL_INFO = MODEL_CONFIGS[selected_model_key]
 
 if 'system_prompt' not in st.session_state: st.session_state.system_prompt = DEFAULT_SYSTEM_PROMPT
-current_system_prompt = st.sidebar.text_area("System Prompt:", value=st.session_state.system_prompt, height=150) 
+current_system_prompt = st.sidebar.text_area(
+    "System Prompt:", 
+    value=st.session_state.system_prompt, 
+    height=400,
+    help="定义 Agent 的核心行为和角色。修改后会开启新的对话。"
+) 
 
 if 'is_debug_mode' not in st.session_state: st.session_state.is_debug_mode = True
-st.session_state.is_debug_mode = st.sidebar.checkbox("Enable Agent Debug Mode", value=st.session_state.is_debug_mode)
+st.session_state.is_debug_mode = st.sidebar.checkbox(
+    "Enable Agent Debug Mode", 
+    value=st.session_state.is_debug_mode,
+    help="开启后，控制台会输出详细的 Agent 运行日志，聊天界面会显示 Agent 的思考过程和工具调用详情。"
+)
 
 def initialize_agent(force_reinit=False):
     model_name = MODEL_INFO['model_name']
@@ -547,7 +561,7 @@ if 'new_user_message_to_process' not in st.session_state:
     st.session_state.new_user_message_to_process = None
 
 
-if st.sidebar.button("New Conversation"):
+if st.sidebar.button("New Conversation", help="清除当前对话历史并重置 Agent。"):
     st.session_state.messages = []
     initialize_agent(force_reinit=True) # Reinitialize agent with potentially new system prompt
     st.session_state.agent_is_waiting_for_input = False
@@ -569,8 +583,8 @@ INITIAL_PROMPTS = [
 ]
 
 if not st.session_state.messages: # Only show if chat is empty
-    st.markdown("你好！我是天气智能助手。你可以问我关于天气的问题，或者试试下面的常见问题：")
-    
+    st.markdown("你好！我是天气助手智能体，我的运行逻辑完全由AI驱动，自主调用Weather Tools获取真实天气数据，并提供建议。你可以问我关于天气或者任何你感兴趣的问题，或者试试下面的常见问题：")
+    st.markdown("*如果觉得Deepseek模型速度不够快，可以尝试侧边栏的模型选择，使用gemini模型，它可以提供更快的响应速度，Even not smarter than Deepseek。* 😂") 
     # Create columns for a better layout, e.g., 2 or 3 buttons per row
     # Adjust the number of columns based on how many prompts you have
     num_cols = 2 
