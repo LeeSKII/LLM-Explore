@@ -412,7 +412,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         location = self.format_location(location)
         return self._make_qweather_request('/v7/minutely/5m', {'location': location})
 
-    def gird_weather_now(self, location:str): # Corrected typo: grid_weather_now
+    def grid_weather_now(self, location:str): 
         location = self.format_location(location)
         return self._make_qweather_request('/v7/grid-weather/now', {'location': location})
 

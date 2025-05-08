@@ -189,14 +189,14 @@ Group:
 
 ------
 
-## 11. gird_weather_now
+## 11. grid_weather_now
 Description: 根据经纬度获取 **实时** 天气，精确到3-5公里范围，包括：温度、湿度、大气压、天气状况、风力、风向等。
 Parameters:
 - location: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**）。
 Usage:
-<gird_weather_now>
+<grid_weather_now>
   <location>Location Here</location>
-</gird_weather_now>
+</grid_weather_now>
 Group:
 - Gridded Weather Forecast
 
