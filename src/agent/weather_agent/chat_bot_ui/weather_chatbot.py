@@ -668,7 +668,7 @@ for i, msg_data in enumerate(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]):
                         if isinstance(step_content, list):
                             for item_idx, item_data in enumerate(step_content):
                                 item_text = item_data.get('text', json.dumps(item_data))
-                                st.markdown(f"- Part {item_idx+1} ({item_data.get('type', 'unknown')}):")
+                                # st.markdown(f"- Part {item_idx+1} ({item_data.get('type', 'unknown')}):")
                                 try:
                                     parsed_json_candidate = item_text
                                     if "Result: " in item_text: 
