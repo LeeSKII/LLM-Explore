@@ -418,7 +418,7 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         path_segment = valid_days_map[forecast_days]
         return self._make_qweather_request(f'/v7/grid-weather/{path_segment}', {'location': location})
 
-    def gird_weather_hourly_forecast(self, location:str, hours:str="24"): # Corrected typo
+    def grid_weather_hourly_forecast(self, location:str, hours:str="24"): # Corrected typo
         location = self.format_location(location)
         valid_hours_map = {"24": "24h", "72": "72h"}
         if hours not in valid_hours_map:
@@ -657,7 +657,7 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
             {"type": "info", "title": "ℹ️ User Input Received by Agent", "content": f"Agent processing: {initial_user_input}"}
         )
 
-    MAX_AGENT_STEPS = 10 # Reduced for mock safety
+    MAX_AGENT_STEPS = 50 # Reduced for mock safety
     final_status = "error"
     final_message_for_ui = "Agent processing encountered an issue."
 
@@ -667,7 +667,7 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
         
         ephemeral_message_placeholder = st.empty() 
         with ephemeral_message_placeholder.chat_message("assistant", avatar="⏳"):
-            expander_title = f"🧠 LLM 思考中... (步骤 {step_count + 1})"
+            expander_title = f"🧠 LLM Thinking... (Step {step_count + 1} Streaming)"
             if step_count == 0 and initial_user_input: expander_title = "🧠 LLM Initial Response (Streaming)"
             elif step_count > 0: expander_title = f"🧠 LLM Processing Tool Result (Step {step_count + 1} - Streaming)"
 
