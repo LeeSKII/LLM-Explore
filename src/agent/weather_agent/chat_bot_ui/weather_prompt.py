@@ -118,10 +118,10 @@ Group:
 ## 3. city_lookup
 Description: 提供全球地理位位置、全球城市搜索，支持[LocationID | 经纬度反查 | 文字 | 拼音(非必要完整拼音))]多语言、模糊搜索等功能。天气数据是基于地理位置的数据，因此获取天气之前需要先知道具体的位置信息。使用城市搜索，可获取到该城市的基本信息，包括城市的Location ID（你需要这个ID去查询天气），多语言名称、经纬度、时区、海拔、Rank值、归属上级行政区域、所在行政区域等。
 Parameters: 
-- location: (required) 需要查询地区的名称，支持[LocationID | 文字 | 以英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)]。例如 location=北京 或 location=101010100。LocationID和经纬度同时存在时，优先使用LocationID
+- location: (required) 需要查询地区的信息，支持[LocationID | 文字 | 以英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)]。例如 location=北京
 Usage:
 <city_lookup>
-<location>Location Here(prefer to use LocationID)</location>
+<location>[城市名称 | 经度,纬度 | LocationID]</location>
 </city_lookup> 
 Group:
 - Geographic Information
@@ -140,10 +140,10 @@ Group:
 ## 5. poi_lookup
 Description: 使用[LocationID|关键字|坐标]查询POI信息（景点、火车站、飞机场、港口等）。
 Parameters:
-- location: (required) 需要查询地区的名称，支持[LocationID | 文字 | 以英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)]。
+- location: (required) 需要查询地区的信息，支持[LocationID | 文字 | 以英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)]。
 Usage:
 <poi_lookup>
-  <location>Location Here(prefer to use LocationID)</location>
+  <location>[LocationID | 文字 | 经度,纬度](prefer to use LocationID)</location>
 </poi_lookup>
 Group:
 - Geographic Information
@@ -154,7 +154,7 @@ Parameters:
 - location: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，**小数点后两位**）。例如 location=116.41,39.92
 Usage:
 <poi_range_search>
-  <location>Location Here</location>
+  <location>经度,纬度</location>
 </poi_range_search>
 Group:
 - Geographic Information
@@ -162,12 +162,12 @@ Group:
 ------
 
 ## 7. city_weather_now
-Description: 根据[LocationID | 经纬度]获取中国3000+市县区和海外20万个城市实时天气数据，包括实时温度、体感温度、风力风向、相对湿度、大气压强、降水量、能见度、露点温度、云量等。
+Description: 根据[LocationID | 经度,纬度]获取中国3000+市县区和海外20万个城市实时天气数据，包括实时温度、体感温度、风力风向、相对湿度、大气压强、降水量、能见度、露点温度、云量等。
 Parameters:
-- location: (required) 需要查询地区的LocationID或以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**），LocationID可通过属于Group `Geographic Information` 的工具获取。例如 location=101010100 或 location=116.41,39.92,优先使用LocationID
+- location: (required) 需要查询地区的LocationID或以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**），LocationID可通过属于Group `Geographic Information` 的工具获取。例如 location=101010100 或 location=116.41,39.92
 Usage:
 <city_weather_now>
-  <location>Location Here(prefer to use LocationID)</location>
+  <location>[LocationID | 经度,纬度](prefer to use LocationID)</location>
 </city_weather_now>
 Group:
 - City Weather
@@ -179,8 +179,8 @@ Parameters:
 - forecast_days: (optional)(可选枚举[3,7,10,15,30]) 需要预报的天数,默认值为3
 Usage:
 <city_weather_daily_forecast>
-  <location>Location Here(prefer to use LocationID)</location>
-  <forecast_days>Forecast Days Here</forecast_days>
+  <location>[LocationID | 经度,纬度](prefer to use LocationID)</location>
+  <forecast_days>[3|7|10|15|30]</forecast_days>
 </city_weather_daily_forecast>
 Group:
 - City Weather
@@ -192,8 +192,8 @@ Parameters:
 - hours: (optional)(可选枚举[24,72,168]) 需要预报的小时数,默认值为24
 Usage:
 <city_weather_hourly_forecast>
-  <location>Location Here(prefer to use LocationID)</location>
-  <hours>Hours Here</hours>
+  <location>[LocationID | 经度,纬度](prefer to use LocationID)</location>
+  <hours>[24|72|168]</hours>
 </city_weather_hourly_forecast>
 Group:
 - City Weather
@@ -206,7 +206,7 @@ Parameters:
 - location: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**）。例如 location=116.41,39.92
 Usage:
 <weather_rainy_forecast_minutes>
-  <location>Location Here</location>
+  <location>经度,纬度</location>
 </weather_rainy_forecast_minutes>
 Group:
 - Minute-by-Minute Rainy Forecast
@@ -219,7 +219,7 @@ Parameters:
 - location: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**）。
 Usage:
 <grid_weather_now>
-  <location>Location Here</location>
+  <location>经度,纬度</location>
 </grid_weather_now>
 Group:
 - Gridded Weather Forecast
@@ -231,8 +231,8 @@ Parameters:
 - forecast_days: (optional)(取值枚举：[3,7]) 需要查未来[3,7]的天气预报,默认值为3
 Usage:
 <gird_weather_forecast>
-  <location>Location Here</location>
-  <forecast_days>Forecast Days Here</forecast_days>
+  <location>经度,纬度</location>
+  <forecast_days>[3|7]</forecast_days>
 </gird_weather_forecast>
 Group:
 - Gridded Weather Forecast
@@ -244,8 +244,8 @@ Parameters:
 - hours: (optional)(取值枚举：[24,72]) 需要查未来[24,72]小时的天气预报,默认值为24
 Usage:
 <grid_weather_hourly_forecast>
-  <location>Location Here</location>
-  <hours>Forecast Hours Here</hours>
+  <location>经度,纬度</location>
+  <hours>[24|72]</hours>
 </grid_weather_hourly_forecast>
 Group:
 - Gridded Weather Forecast
@@ -259,8 +259,8 @@ Parameters:
 - forecast_days: (optional)(取值枚举：[1,3]) 需要查未来[1,3]天的生活指数,默认值为1
 Usage:
 <weather_indices>
-  <location>Location Here</location>
-  <forecast_days>Forecast Days Here</forecast_days>
+  <location>[LocationID | 经度,纬度]</location>
+  <forecast_days>[1|3]</forecast_days>
 </weather_indices>
 Group:
 - Life Indices with Weather Forecast
