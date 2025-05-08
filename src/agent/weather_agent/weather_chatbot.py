@@ -84,86 +84,90 @@ class BaseAgent:
         return xml_str # Return original if not typical tag structure
 
     def parse_input_text(self, input_text: str) -> Tuple[str, Dict[str, Any]]:
-        thinking_content = "Could not parse thinking."
         try:
             thinking_match = re.search(r"<thinking>(.*?)</thinking>", input_text, re.DOTALL)
             if thinking_match:
                 thinking_content = thinking_match.group(1).strip()
-            self.last_thinking_content = thinking_content # Store for display
+            self.last_thinking_content = thinking_content 
         except Exception as e:
             print(f"Error parsing thinking tag: {e}")
             self.last_thinking_content = f"Error parsing thinking: {e}"
 
-
-        action_content = ""
+        action_content_str = "" # Renamed to avoid conflict
         try:
             action_match = re.search(r"<action>(.*?)</action>", input_text, re.DOTALL)
             if action_match:
-                action_content = action_match.group(1).strip()
+                action_content_str = action_match.group(1).strip()
         except Exception as e:
             print(f"Error parsing action tag: {e}")
-            return self.last_thinking_content, {"error": f"Error parsing action tag: {e}"}
-
+            return self.last_thinking_content, {"error": f"Error parsing action tag: {e}", "details": "Agent will attempt completion."}
 
         tool_info: Dict[str, Any] = {}
-        if not action_content:
-            # If no action tag, LLM might be trying to converse or failed format
-            # Treat as an attempt_completion with the raw input_text (minus thinking, if any)
-            # This is a fallback. Ideally, LLM always uses <action>.
+        if not action_content_str:
+            # ... (fallback to attempt_completion as before) ...
             llm_direct_response = re.sub(r"<thinking>.*?</thinking>", "", input_text, flags=re.DOTALL).strip()
-            if not llm_direct_response and not self.last_thinking_content: # Empty response
+            if not llm_direct_response and not self.last_thinking_content:
                  llm_direct_response = "I'm not sure how to respond to that. Can you try rephrasing?"
-            elif not llm_direct_response and self.last_thinking_content: # Only thinking
-                 llm_direct_response = self.last_thinking_content # Or a canned response
-
+            elif not llm_direct_response and self.last_thinking_content:
+                 llm_direct_response = self.last_thinking_content 
             tool_info["tool_name"] = "attempt_completion"
             tool_info["parameters"] = {"result": llm_direct_response}
-            print(f"Warning: No <action> tag found. Fallback to attempt_completion with content: {llm_direct_response}")
             return self.last_thinking_content, tool_info
 
         try:
-            # Wrap in a root tag only if action_content itself isn't a single well-formed XML tool call
-            # A bit heuristic: if it starts with < and ends with > and contains another <, it might be okay
-            if not (action_content.startswith("<") and action_content.endswith(">") and action_content.count("<") > 1) :
-                # This case is unlikely if LLM follows prompt for single tool in action
-                # However, if it puts text directly in <action>text</action>
-                root = ET.fromstring(f"<root><action_wrapper>{action_content}</action_wrapper></root>")
-                tool_element = root.find('action_wrapper')
-                if tool_element is not None and tool_element.text and not list(tool_element): # if it's just text
-                    tool_info["tool_name"] = "attempt_completion" # Treat as direct response
-                    tool_info["parameters"] = {"result": tool_element.text.strip()}
-                    return self.last_thinking_content, tool_info
-
-            # Try parsing action_content directly
-            # It should be <tool><param>...</param></tool>
-            tool_element_root = ET.fromstring(action_content) # This assumes action_content is like <tool_name>...</tool_name>
+            # ... (existing XML parsing logic up to extracting tool_name and params) ...
+            tool_element_root = ET.fromstring(action_content_str) 
             tool_name = tool_element_root.tag
             tool_info["tool_name"] = tool_name
             
             params = {}
             for param_element in tool_element_root:
-                # For parameters that might contain complex XML/HTML, get the inner content
-                # ET.tostring includes the tag itself. We need to strip it.
-                inner_xml = "".join(ET.tostring(e, encoding='unicode') for e in param_element)
-                if param_element.text and not inner_xml: # Simple text node
-                    params[param_element.tag] = param_element.text.strip()
-                elif inner_xml: # Has child elements or mixed content
-                    # Strip the outer tag of the param_element itself
-                    # e.g. if param_xml is <city>New <b>York</b></city>, we want "New <b>York</b>"
-                    # This logic might need refinement based on actual LLM output for complex params
-                    param_content_str = ET.tostring(param_element, encoding='unicode')
-                    params[param_element.tag] = self.strip_outer_tag(param_content_str)
+                param_tag = param_element.tag
+                
+                # Collect all inner text and XML, preserving structure for tags like <suggest>
+                # This involves iterating through child nodes and their text/tail content.
+                # A simpler way if params are expected to be mostly text or simple nested tags:
+                inner_content_parts = []
+                if param_element.text: # Text before the first child
+                    inner_content_parts.append(param_element.text) # Keep leading/trailing spaces for now, strip later
+                
+                for child_node in param_element:
+                    # Add the string representation of the child tag itself
+                    inner_content_parts.append(ET.tostring(child_node, encoding='unicode'))
+                    # Add text that comes after the child tag (tail)
+                    # if child_node.tail: # Tail text is often stripped or part of next text node.
+                    #    inner_content_parts.append(child_node.tail)
 
-                else: # Empty tag
-                    params[param_element.tag] = ""
+                param_value_str = "".join(inner_content_parts).strip()
+                params[param_tag] = param_value_str
             
             tool_info["parameters"] = params
+
+            # --- NEW: Parse suggestions if tool is ask_followup_question ---
+            if tool_name == "ask_followup_question" and "follow_up" in params:
+                follow_up_content = params["follow_up"] # This is a string like "<suggest>A</suggest><suggest>B</suggest>"
+                suggestions = []
+                try:
+                    # Wrap in a root to parse potentially multiple suggest tags
+                    suggest_root = ET.fromstring(f"<root_suggest>{follow_up_content}</root_suggest>")
+                    for suggest_element in suggest_root.findall("suggest"):
+                        if suggest_element.text:
+                            suggestions.append(suggest_element.text.strip())
+                    if suggestions:
+                        tool_info["parameters"]["suggestions"] = suggestions
+                        # Optionally remove raw follow_up if it's now redundant
+                        # del tool_info["parameters"]["follow_up"] 
+                except ET.ParseError as pe:
+                    print(f"Could not parse <suggest> tags in follow_up: {pe}. Content: {follow_up_content}")
+            # --- END NEW ---
             
         except ET.ParseError as e:
-            print(f"Error parsing XML in action tag: {e}. Content: '{action_content}'")
-            # Fallback: treat the action_content as part of a direct response
+            # ... (error handling as before) ...
+            error_detail = f"Error parsing XML in action tag: {e}. Content: '{action_content_str}'"
+            print(error_detail)
             tool_info["tool_name"] = "attempt_completion"
-            tool_info["parameters"] = {"result": f"Error in processing my action: {action_content}"}
+            tool_info["parameters"] = {"result": f"I had trouble processing my internal action steps. The details were: {action_content_str}"}
+            tool_info["error"] = error_detail 
             return self.last_thinking_content, tool_info
         
         return self.last_thinking_content, tool_info
@@ -216,47 +220,35 @@ class BaseAgent:
     def build_tool_result_message_for_llm(self, tool_result_payload: List[Dict[str, str]], action_details: Dict[str, Any], user_interactive_input: str = ""):
         """
         Prepares the message to be sent back to the LLM after a tool action.
-        This message should represent the information the LLM needs to continue.
-        For most LLMs expecting OpenAI format, 'user' role content should be a string.
-        'tool' role is preferred for actual tool outputs if using OpenAI tool calling.
-        Given the current XML-based tool use, we'll use 'user' role with string content.
         """
         tool_name_from_details = action_details.get('tool_name', 'unknown_tool_from_details')
-        llm_message_content_str = "" # Initialize as string
+        # Get parameters from action_details, as this dict contains the state from when the action was decided.
+        action_parameters = action_details.get('parameters', {})
+        llm_message_content_str = "" 
 
         if user_interactive_input:
             # This is when the user responds to an 'ask_followup_question'
-            llm_message_content_str = f"User's response to my question about '{tool_params_executed.get('question', 'previous question')}': {user_interactive_input}"
-            # Add this to agent's history as a user message containing the user's actual response
+            # We use 'action_parameters' which are the parameters of the 'ask_followup_question' tool call.
+            question_that_was_asked = action_parameters.get('question', 'my previous question') # From the original <ask_followup_question> parameters
+            llm_message_content_str = f"User's response to my question ('{question_that_was_asked}'): {user_interactive_input}"
             self.messages.append({'role': 'user', 'content': llm_message_content_str})
 
         elif tool_name_from_details == "attempt_completion":
-            # For attempt_completion, the agent has finished its thought process for this branch.
-            # The assistant's message containing the <attempt_completion> tag is already in history.
-            # No further message needs to be sent to the LLM representing the "result" of this pseudo-tool.
-            # The 'final_answer' is for the UI. The agent's internal turn concludes.
-            if self.is_debug:
-                print(f"INFO: 'attempt_completion' executed. No further 'tool result' message added to LLM history for this action.")
-            return # Do not add any message for attempt_completion outcome
+            if self.is_debug: print(f"INFO: 'attempt_completion' executed. No 'tool result' message added to LLM history.")
+            return 
 
         elif tool_name_from_details == "ask_followup_question":
-            # When 'ask_followup_question' is INITIALLY called (not the user's response yet):
-            # The assistant message with the <action><ask_followup_question>...</ask_followup_question></action>
-            # is already in agent.messages. The agent will now wait for user input.
-            # No "tool result" needs to be added to LLM history at this point.
-            if self.is_debug:
-                print(f"INFO: 'ask_followup_question' initiated. Waiting for user's interactive response. No 'tool result' message added to LLM history yet.")
-            return # Do not add any message for ask_followup_question initiation
+            # This case is for when ask_followup_question is INITIATED by the LLM.
+            # user_interactive_input will be empty here.
+            if self.is_debug: print(f"INFO: 'ask_followup_question' initiated. No 'tool result' message added to LLM history yet.")
+            return 
 
         else: # For actual, non-interactive tools that return data
-            # Collate texts from tool_result_payload
-            # tool_result_payload is like: [{"type": "text", "text": "[tool_name] Result: {json_output}"}]
-            # or it could contain error messages from tool execution.
             result_texts = []
             for item in tool_result_payload:
                 if item.get("type") == "text" and "text" in item:
                     result_texts.append(item["text"])
-                elif item.get("type") == "error": # If your payload can contain explicit errors
+                elif item.get("type") == "error": 
                     result_texts.append(f"Error from tool '{tool_name_from_details}': {item.get('text')}")
 
             if not result_texts:
@@ -264,15 +256,17 @@ class BaseAgent:
             else:
                 llm_message_content_str = "\n".join(result_texts)
             
-            # This message represents the output of the tool, which the LLM needs to process.
-            # Role 'user' is used here as per the agent's current design of not using OpenAI 'tool' role.
             self.messages.append({'role': 'user', 'content': llm_message_content_str})
 
 
         if self.is_debug and llm_message_content_str: # Only print if a message was actually constructed
             print(f"===== Message Appended to Agent's Internal History (for LLM) =====")
-            print(f"Role: {self.messages[-1]['role']}")
-            print(f"Content:\n{self.messages[-1]['content']}")
+            # Check the last message added, as self.messages could have been appended to differently if there was no llm_message_content_str
+            if self.messages and self.messages[-1]['content'] == llm_message_content_str :
+                print(f"Role: {self.messages[-1]['role']}")
+                print(f"Content:\n{self.messages[-1]['content']}")
+            else:
+                print(f"DEBUG: A message might have been intended but llm_message_content_str was '{llm_message_content_str}' and last agent message is different or non-existent.")
             print(f"=================================================================")
 
 
@@ -682,12 +676,15 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
         elif is_interactive and tool_name_executed == "ask_followup_question":
             final_status = "interactive"
             final_message_for_ui = tool_params_executed.get("question", "Need more info.")
+            suggestions = tool_params_executed.get("suggestions", []) # Get parsed suggestions
+
             st.session_state.agent_is_waiting_for_input = True
             st.session_state.interactive_tool_data = {
-                "action_details": executed_action_details,
+                "action_details": executed_action_details, # Contains all params, including original 'follow_up' and new 'suggestions'
                 "prompt_to_user": final_message_for_ui,
+                "suggestions": suggestions # Store suggestions here explicitly for easy access
             }
-            agent.build_tool_result_message_for_llm(tool_result_payload, executed_action_details) # Does nothing for LLM history
+            agent.build_tool_result_message_for_llm(tool_result_payload, executed_action_details)
             break 
         
         elif not is_interactive: # Non-interactive tool, continue loop
@@ -733,7 +730,59 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
 
 
 # --- Input Handling ---
-user_prompt_input = st.chat_input("What would you like to know about the weather?")
+user_prompt_input = None # Initialize
+
+if 'clicked_suggestion' in st.session_state and st.session_state.clicked_suggestion:
+    user_prompt_input = st.session_state.clicked_suggestion
+    del st.session_state.clicked_suggestion # Consume it
+else:
+    user_prompt_input = st.chat_input("What would you like to know about the weather?")
+
+
+if st.session_state.agent_is_waiting_for_input:
+    interactive_data = st.session_state.interactive_tool_data
+    
+    # Display the agent's question (already part of the last assistant message)
+    # st.info(f"Agent asks: {interactive_data['prompt_to_user']}") # Can be redundant
+
+    # Display suggestion buttons if available
+    suggestions = interactive_data.get("suggestions", [])
+    if suggestions:
+        st.write("Or choose a suggestion:") # Or some other introductory text
+        cols = st.columns(len(suggestions) if len(suggestions) <= 5 else 5) # Max 5 buttons per row
+        for i, suggestion_text in enumerate(suggestions):
+            if cols[i % len(cols)].button(suggestion_text, key=f"suggest_btn_{i}"):
+                st.session_state.clicked_suggestion = suggestion_text
+                # Important: Rerun to process the click immediately.
+                # The user_prompt_input at the top will pick this up.
+                st.rerun() 
+    
+    # The chat_input for free-form response is now handled by user_prompt_input logic at the top
+    # If user_prompt_input got a value from a button click, that will be processed.
+    # If user typed into chat_input, that will be processed.
+
+    if user_prompt_input: # This will be true if button was clicked or user typed and pressed Enter
+        user_interactive_response = user_prompt_input
+
+        st.session_state.messages.append({"role": "user", "content": user_interactive_response, "content_display": user_interactive_response})
+        agent: WeatherAgent = st.session_state.weather_agent
+        agent.build_tool_result_message_for_llm(
+            tool_result_payload=[],
+            action_details=interactive_data['action_details'],
+            user_interactive_input=user_interactive_response
+        )
+        if agent.is_debug: print("Built tool result from user's interactive input and added to agent's internal history.")
+        
+        st.session_state.agent_is_waiting_for_input = False # Reset waiting state
+        st.session_state.interactive_tool_data = None     # Clear interactive data
+        
+        run_full_agent_turn_and_manage_ui(initial_user_input=None) # Continue turn
+        st.rerun()
+
+elif user_prompt_input: # Standard new user query (or from a suggestion button if not in interactive mode, though less likely)
+    st.session_state.messages.append({"role": "user", "content": user_prompt_input, "content_display": user_prompt_input})
+    run_full_agent_turn_and_manage_ui(initial_user_input=user_prompt_input) # Start new turn
+    st.rerun()
 
 if st.session_state.agent_is_waiting_for_input:
     interactive_data = st.session_state.interactive_tool_data
