@@ -381,53 +381,52 @@ MC4CAQAwBQYDK2VwBCIEIJIE87KurF9ZlyQQdyfMeiWbO+rNAoCxvJVTC//JnYMQ
         if radius: params['radius'] = radius
         return self._make_qweather_request('/geo/v2/poi/range', params)
 
-    def city_weather_now(self, location:str):
-        location = self.format_location(location)
+    def city_weather_now(self, locationID_or_latLon:str):
+        location = self.format_location(locationID_or_latLon)
         return self._make_qweather_request('/v7/weather/now', {'location': location})
 
-    def city_weather_daily_forecast(self, location:str, forecast_days:str="3"):
-        location = self.format_location(location)
-        days_val = 3
+    def city_weather_daily_forecast(self, locationID_or_latLon:str, forecast_days:str="3"):
+        location = self.format_location(locationID_or_latLon)
         valid_days_map = {"3": "3d", "7": "7d", "10": "10d", "15": "15d", "30": "30d"}
         if forecast_days not in valid_days_map:
             return {'status': 'error','message': f'Invalid forecast_days: {forecast_days}. Choose from {list(valid_days_map.keys())}'}
         path_segment = valid_days_map[forecast_days]
         return self._make_qweather_request(f'/v7/weather/{path_segment}', {'location': location})
 
-    def city_weather_hourly_forecast(self, location:str, hours:str="24"):
-        location = self.format_location(location)
+    def city_weather_hourly_forecast(self, locationID_or_latLon:str, hours:str="24"):
+        location = self.format_location(locationID_or_latLon)
         valid_hours_map = {"24": "24h", "72": "72h", "168": "168h"} # Common options
         if hours not in valid_hours_map:
              return {'status': 'error','message': f'Invalid hours: {hours}. Choose from {list(valid_hours_map.keys())}'}
         path_segment = valid_hours_map[hours]
         return self._make_qweather_request(f'/v7/weather/{path_segment}', {'location': location})
 
-    def weather_rainy_forecast_minutes(self, location:str):
-        location = self.format_location(location)
+    def weather_rainy_forecast_minutes(self, latLon:str):
+        location = self.format_location(latLon)
         return self._make_qweather_request('/v7/minutely/5m', {'location': location})
 
-    def grid_weather_now(self, location:str): 
-        location = self.format_location(location)
+    def grid_weather_now(self, latLon:str): 
+        location = self.format_location(latLon)
         return self._make_qweather_request('/v7/grid-weather/now', {'location': location})
 
-    def grid_weather_forecast(self, location:str, forecast_days:str="3"):
-        location = self.format_location(location)
+    def grid_weather_forecast(self, latLon:str, forecast_days:str="3"):
+        location = self.format_location(latLon)
         valid_days_map = {"3": "3d", "7": "7d"}
         if forecast_days not in valid_days_map:
             return {'status': 'error','message': f'Invalid forecast_days for grid: {forecast_days}. Choose from {list(valid_days_map.keys())}'}
         path_segment = valid_days_map[forecast_days]
         return self._make_qweather_request(f'/v7/grid-weather/{path_segment}', {'location': location})
 
-    def grid_weather_hourly_forecast(self, location:str, hours:str="24"):
-        location = self.format_location(location)
+    def grid_weather_hourly_forecast(self, latLon:str, hours:str="24"):
+        location = self.format_location(latLon)
         valid_hours_map = {"24": "24h", "72": "72h"}
         if hours not in valid_hours_map:
             return {'status': 'error','message': f'Invalid hours for grid: {hours}. Choose from {list(valid_hours_map.keys())}'}
         path_segment = valid_hours_map[hours]
         return self._make_qweather_request(f'/v7/grid-weather/{path_segment}', {'location': location})
         
-    def weather_indices(self, location:str, forecast_days:str="1"):
-        location = self.format_location(location)
+    def weather_indices(self, locationID_or_latLon:str, forecast_days:str="1"):
+        location = self.format_location(locationID_or_latLon)
         valid_days_map = {"1": "1d", "3": "3d"}
         if forecast_days not in valid_days_map:
             return {'status': 'error','message': f'Invalid forecast_days for indices: {forecast_days}. Choose from {list(valid_days_map.keys())}'}
