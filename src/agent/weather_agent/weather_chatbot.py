@@ -614,20 +614,16 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
 
         llm_full_response_this_step = ""
         
-        # --- UI for Live LLM Stream (Ephemeral) ---
-        # Create a new chat message container for each LLM stream in the turn.
-        # This will appear directly in the chat flow as it happens.
-        with st.chat_message("assistant", avatar="⏳"): # Using a temporary avatar
-            expander_title = f"🧠 LLM Output (Step {step_count + 1} - Streaming)"
-            if step_count == 0 and initial_user_input:
-                expander_title = "🧠 LLM Initial Response (Streaming)"
-            elif step_count > 0:
-                expander_title = f"🧠 LLM Processing Tool Result (Step {step_count + 1} - Streaming)"
-            
+        # --- 1. UI for Live LLM Stream (Ephemeral) ---
+        with st.chat_message("assistant", avatar="⏳"): 
+            expander_title = f"🧠 LLM Thinking (Step {step_count + 1} - Streaming)"
+            # ... (expander title logic as before) ...
+            if step_count == 0 and initial_user_input: expander_title = "🧠 LLM Initial Response (Streaming)"
+            elif step_count > 0: expander_title = f"🧠 LLM Processing Tool Result (Step {step_count + 1} - Streaming)"
+
             with st.expander(expander_title, expanded=True):
                 stream_display_placeholder = st.empty()
-                stream_display_placeholder.markdown("▍") # Initial cursor
-
+                stream_display_placeholder.markdown("▍") 
                 try:
                     for chunk in agent.get_assistant_response_stream():
                         llm_full_response_this_step += chunk
@@ -636,16 +632,15 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
                 except Exception as e:
                     stream_display_placeholder.error(f"LLM API Error during stream: {e}")
                     llm_full_response_this_step = f"<thinking>LLM API Error: {e}</thinking><action><attempt_completion><result>I encountered an issue with the Language Model connection.</result></attempt_completion></action>"
-        # --- End of UI for Live LLM Stream ---
-
-        # Store this raw response for the final consolidated expander
+        
+        # Add LLM raw response to agent's history and intermediate steps for UI
         st.session_state.current_turn_intermediate_steps.append(
             {"type": "llm_raw_response", "title": f"🧠 LLM Raw Output (Step {step_count+1})", "content": llm_full_response_this_step}
         )
-        # Add to agent's internal history
         agent.messages.append({"role": "assistant", "content": llm_full_response_this_step})
         if agent.is_debug: print(f"Appended assistant (LLM) raw response (Step {step_count+1}) to agent's internal history.")
 
+        # --- 2. Parse LLM Output ---
         thinking_content, action_details_parsed = agent.parse_input_text(llm_full_response_this_step)
         if thinking_content:
             st.session_state.current_turn_intermediate_steps.append(
@@ -655,70 +650,108 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
             {"type": "action_parsed", "title": f"🛠️ Action Parsed (Step {step_count+1})", "content": action_details_parsed}
         )
 
+        tool_name_from_parse = action_details_parsed.get("tool_name")
+        tool_params_from_parse = action_details_parsed.get("parameters", {})
+
+        # --- 3. Display "Tool Calling" Info (Ephemeral) IF applicable ---
+        # We display this before executing the action, especially if action might be slow.
+        # This is also an ephemeral message.
+        tool_calling_ui_placeholder = st.empty() # Placeholder for this message
+
+        if tool_name_from_parse and tool_name_from_parse not in ["attempt_completion", "ask_followup_question"]:
+            # It's a tool that will actually be "executed" (e.g., an API call)
+            tool_call_info_md = f"⚙️ Preparing to use tool: **`{tool_name_from_parse}`**"
+            if tool_params_from_parse:
+                # Display params nicely, truncate if too long for this ephemeral display
+                params_str = json.dumps(tool_params_from_parse)
+                if len(params_str) > 100: params_str = params_str[:100] + "..."
+                tool_call_info_md += f" with parameters: `{params_str}`"
+            
+            with tool_calling_ui_placeholder.chat_message("system", avatar="⚙️"): # Or use assistant avatar
+                st.markdown(tool_call_info_md)
+            
+            # Also add this to the consolidated steps for the final expander
+            st.session_state.current_turn_intermediate_steps.append(
+                {"type": "info", "title": f"🛠️ Tool Call Initiated (Step {step_count+1})", 
+                 "content": f"Tool: {tool_name_from_parse}, Parameters: {json.dumps(tool_params_from_parse, indent=2)}"}
+            )
+        elif "error" in action_details_parsed and tool_name_from_parse != "attempt_completion": # If parsing itself had an error
+             with tool_calling_ui_placeholder.chat_message("system", avatar="⚠️"):
+                 st.warning(f"⚠️ Error parsing action from LLM: {action_details_parsed.get('error', 'Unknown parsing error')}. Agent will attempt to recover or complete.")
+
+
+        # --- 4. Execute Action ---
+        # This might take time if it's a real API call
         is_interactive, tool_result_payload, executed_action_details = agent.execute_action(action_details_parsed)
+        
+        # Now that action is executed, we can clear the "Preparing to use tool" ephemeral message
+        # The results/next steps will appear in subsequent UI updates (next LLM stream or final message)
+        tool_calling_ui_placeholder.empty() 
+
+        # Add executed action details and payload to consolidated steps
         st.session_state.current_turn_intermediate_steps.append(
             {"type": "action_executed", "title": f"⚙️ Action Executed (Step {step_count+1})", "content": executed_action_details}
         )
-        if tool_result_payload:
+        if tool_result_payload: # tool_result_payload might be empty for ask_followup or some errors
             st.session_state.current_turn_intermediate_steps.append(
                 {"type": "tool_result_payload", "title": f"✨ Tool Result Payload (Step {step_count+1})", "content": tool_result_payload}
             )
 
-        tool_name_executed = executed_action_details.get("tool_name")
+        tool_name_executed = executed_action_details.get("tool_name") # This is tool name *after* execution (could be a fallback)
         tool_params_executed = executed_action_details.get("parameters", {})
 
+        # --- 5. Handle flow based on action outcome ---
         if tool_name_executed == "attempt_completion":
             final_status = "completion"
             final_message_for_ui = tool_params_executed.get("result", "Completed.")
-            agent.build_tool_result_message_for_llm(tool_result_payload, executed_action_details) # Does nothing for LLM history
+            agent.build_tool_result_message_for_llm(tool_result_payload, executed_action_details)
             break 
 
         elif is_interactive and tool_name_executed == "ask_followup_question":
             final_status = "interactive"
             final_message_for_ui = tool_params_executed.get("question", "Need more info.")
-            suggestions = tool_params_executed.get("suggestions", []) # Get parsed suggestions
-
+            # ... (set interactive_tool_data as before) ...
             st.session_state.agent_is_waiting_for_input = True
             st.session_state.interactive_tool_data = {
-                "action_details": executed_action_details, # Contains all params, including original 'follow_up' and new 'suggestions'
+                "action_details": executed_action_details,
                 "prompt_to_user": final_message_for_ui,
-                "suggestions": suggestions # Store suggestions here explicitly for easy access
+                "suggestions": tool_params_executed.get("suggestions", []) # Ensure suggestions are passed
             }
             agent.build_tool_result_message_for_llm(tool_result_payload, executed_action_details)
             break 
         
-        elif not is_interactive: # Non-interactive tool, continue loop
-            agent.build_tool_result_message_for_llm(tool_result_payload, executed_action_details) # Adds tool output to LLM history
+        elif not is_interactive: # Non-interactive tool was called and executed
+            agent.build_tool_result_message_for_llm(tool_result_payload, executed_action_details)
             if agent.is_debug: print(f"Continuing loop after non-interactive tool '{tool_name_executed}' (Step {step_count+1})")
             st.session_state.current_turn_intermediate_steps.append(
                 {"type": "info", "title": f"ℹ️ Looping (End of Step {step_count+1})", "content": f"Feeding result of '{tool_name_executed}' back to LLM."}
             )
-            if step_count == MAX_AGENT_STEPS - 1:
+            if step_count == MAX_AGENT_STEPS - 1: # Check if it's the last iteration
                 final_status = "error"
                 final_message_for_ui = "Max steps reached during tool processing loop."
+                # Attempt to build a completion message for the agent's history
                 agent.build_tool_result_message_for_llm(
-                     [], {"tool_name": "attempt_completion", "parameters": {"result": final_message_for_ui}}
-                ) # Force completion
-        else: # Unhandled state (e.g., interactive but not ask_followup_question)
+                     [], {"tool_name": "attempt_completion", "parameters": {"result": final_message_for_ui}}, ""
+                )
+        else: 
             final_status = "error"
             final_message_for_ui = f"Unhandled agent state: tool='{tool_name_executed}', interactive={is_interactive} (Step {step_count+1})"
+            # ... (add error to intermediate_steps and attempt to build completion message for agent history) ...
             st.session_state.current_turn_intermediate_steps.append(
                 {"type": "error", "title": "❌ Agent Logic Error", "content": final_message_for_ui}
             )
             agent.build_tool_result_message_for_llm(
-                [], {"tool_name": "attempt_completion", "parameters": {"result": final_message_for_ui}}
-            ) # Force completion
+                [], {"tool_name": "attempt_completion", "parameters": {"result": final_message_for_ui}}, ""
+            )
             break
-
     # --- End of Agent Processing Loop ---
 
-    # Append the final user-facing assistant message to the *main UI history*
-    # This message will contain the consolidated "View Agent's Process" expander
+    # ... (rest of the function: append final assistant message to st.session_state.messages) ...
     assistant_response_for_ui_history = {
         "role": "assistant",
-        "content": final_message_for_ui, # This is the actual answer or question for the user
+        "content": final_message_for_ui, 
         "content_display": final_message_for_ui,
-        "intermediate_steps": list(st.session_state.current_turn_intermediate_steps) # Make a copy
+        "intermediate_steps": list(st.session_state.current_turn_intermediate_steps)
     }
     st.session_state.messages.append(assistant_response_for_ui_history)
 
