@@ -51,11 +51,21 @@ class BaseAgent:
                 num_retries=self.num_retries
             )
             full_response = ""
+            reasoning_content = ""
+            content = ""
             for chunk in stream:
-                if chunk.choices[0].delta.content is not None:
-                    content_piece = chunk.choices[0].delta.content
-                    full_response += content_piece
-                    yield content_piece
+                if hasattr(chunk.choices[0].delta, "reasoning_content"):
+                    if chunk.choices[0].delta.reasoning_content is not None:                 
+                        content_piece = chunk.choices[0].delta.reasoning_content
+                        reasoning_content += content_piece
+                        yield content_piece
+                else:
+                    if chunk.choices[0].delta.content is not None:
+                        content_piece = chunk.choices[0].delta.content
+                        content += content_piece
+                        yield content_piece
+            
+            full_response = reasoning_content + content
             # self.messages.append({"role": "assistant", "content": full_response}) # Add response after full stream
             # Streamlit app will handle adding the full response to history for display.
             # Agent's internal messages will be updated more strategically.
@@ -479,23 +489,36 @@ DEFAULT_SYSTEM_PROMPT = weather_system_prompt_cot if 'weather_system_prompt_cot'
 
 class ModelChoice(StrEnum):
     DEEPSEEK = "deepseek-chat"
+    DEEPSEEK_REASONER = "deepseek-reasoner"
     OPENER_ROUTER_GEMINI_1_5_FLASH = 'open-router-gemini-flash_1_5'
     OPENER_ROUTER_GEMINI_1_5_FLASH_8B = 'open-router-gemini-flash_1_5_8b'
+    
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "YOUR_DEEPSEEK_API_KEY")
+DEEPSEEK_API_BASE_URL = os.getenv("DEEPSEEK_API_BASE_URL", "YOUR_DEEPSEEK_API_BASE_URL")
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "YOUR_OPENROUTER_API_KEY")
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "YOUR_OPENROUTER_BASE_URL")
+
 MODEL_CONFIGS = {
     ModelChoice.DEEPSEEK: {
         'model_name': 'deepseek/deepseek-chat',
-        'api_key': os.getenv("DEEPSEEK_API_KEY", "YOUR_DEEPSEEK_API_KEY"), 
-        'base_url': os.getenv("DEEPSEEK_API_BASE_URL", "YOUR_DEEPSEEK_BASE_URL")
+        'api_key': DEEPSEEK_API_KEY, 
+        'base_url': DEEPSEEK_API_BASE_URL
+    },
+    ModelChoice.DEEPSEEK_REASONER: {
+        'model_name': 'deepseek/deepseek-reasoner',
+        'api_key': DEEPSEEK_API_KEY, 
+        'base_url': DEEPSEEK_API_BASE_URL
     },
     ModelChoice.OPENER_ROUTER_GEMINI_1_5_FLASH: {
         'model_name': 'openrouter/google/gemini-flash-1.5',
-        'api_key': os.getenv("OPENROUTER_API_KEY", "YOUR_OPENROUTER_API_KEY"),
-        'base_url': os.getenv("OPENROUTER_BASE_URL", "YOUR_OPENROUTER_BASE_URL")
+        'api_key': OPENROUTER_API_KEY,
+        'base_url': OPENROUTER_BASE_URL
     },
     ModelChoice.OPENER_ROUTER_GEMINI_1_5_FLASH_8B: {
         'model_name': 'openrouter/google/gemini-flash-1.5-8b',
-        'api_key': os.getenv("OPENROUTER_API_KEY", "YOUR_OPENROUTER_API_KEY"),
-        'base_url': os.getenv("OPENROUTER_BASE_URL", "YOUR_OPENROUTER_BASE_URL")
+        'api_key': OPENROUTER_API_KEY,
+        'base_url': OPENROUTER_BASE_URL
     }
 }
 
