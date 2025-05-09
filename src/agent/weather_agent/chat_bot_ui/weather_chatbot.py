@@ -492,12 +492,16 @@ class ModelChoice(StrEnum):
     DEEPSEEK_REASONER = "deepseek-reasoner"
     OPENER_ROUTER_GEMINI_1_5_FLASH = 'open-router-gemini-flash_1_5'
     OPENER_ROUTER_GEMINI_1_5_FLASH_8B = 'open-router-gemini-flash_1_5_8b'
+    QWEN3_14B = 'openai/qwen3-14b'
     
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "YOUR_DEEPSEEK_API_KEY")
 DEEPSEEK_API_BASE_URL = os.getenv("DEEPSEEK_API_BASE_URL", "YOUR_DEEPSEEK_API_BASE_URL")
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "YOUR_OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "YOUR_OPENROUTER_BASE_URL")
+
+QWEN_API_KEY = os.getenv("QWEN_API_KEY", "YOUR_QWEN_API_KEY")
+QWEN_API_BASE_URL = os.getenv("QWEN_API_BASE_URL", "YOUR_QWEN_API_BASE_URL")
 
 MODEL_CONFIGS = {
     ModelChoice.DEEPSEEK: {
@@ -519,6 +523,11 @@ MODEL_CONFIGS = {
         'model_name': 'openrouter/google/gemini-flash-1.5-8b',
         'api_key': OPENROUTER_API_KEY,
         'base_url': OPENROUTER_BASE_URL
+    },
+    ModelChoice.QWEN3_14B: {
+        'model_name': 'openai/qwen3-14b',
+        'api_key': QWEN_API_KEY,
+        'base_url': QWEN_API_BASE_URL
     }
 }
 
