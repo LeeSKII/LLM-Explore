@@ -488,10 +488,12 @@ MAX_MESSAGES_DISPLAY = 50
 DEFAULT_SYSTEM_PROMPT = weather_system_prompt_cot if 'weather_system_prompt_cot' in globals() else "You are a helpful weather assistant."
 
 class ModelChoice(StrEnum):
+    QWEN_TURBO = 'openai/qwen-turbo-latest'
     DEEPSEEK = "deepseek-chat"
     DEEPSEEK_REASONER = "deepseek-reasoner"
     OPENER_ROUTER_GEMINI_1_5_FLASH = 'open-router-gemini-flash_1_5'
     OPENER_ROUTER_GEMINI_1_5_FLASH_8B = 'open-router-gemini-flash_1_5_8b'
+    QWEN3_235B = 'openai/qwen3-235b-a22b'
     QWEN3_14B = 'openai/qwen3-14b'
     
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "YOUR_DEEPSEEK_API_KEY")
@@ -523,6 +525,16 @@ MODEL_CONFIGS = {
         'model_name': 'openrouter/google/gemini-flash-1.5-8b',
         'api_key': OPENROUTER_API_KEY,
         'base_url': OPENROUTER_BASE_URL
+    },
+    ModelChoice.QWEN_TURBO: {
+        'model_name': 'openai/qwen-turbo-latest',
+        'api_key': QWEN_API_KEY,
+        'base_url': QWEN_API_BASE_URL
+    },
+    ModelChoice.QWEN3_235B: {
+        'model_name': 'openai/qwen3-235b-a22b',
+        'api_key': QWEN_API_KEY,
+        'base_url': QWEN_API_BASE_URL
     },
     ModelChoice.QWEN3_14B: {
         'model_name': 'openai/qwen3-14b',
@@ -652,7 +664,7 @@ INITIAL_PROMPTS = [
 
 if not st.session_state.messages: # Only show if chat is empty
     st.markdown("你好！我是天气助手智能体，我的运行逻辑完全由AI驱动。自主调用和风天气Weather Tools获取真实天气数据，并提供建议。你可以问我关于天气或者任何你感兴趣的问题，或者试试下面的常见问题：")
-    st.caption("*如果觉得Deepseek模型速度不够快，可以尝试侧边栏的模型选择，使用gemini模型，它可以提供更快的响应速度，Even not smarter than Deepseek。* 😂") 
+    st.caption("推荐模型: QWen Turbo YYDS 😂") 
     st.markdown("❤️ **我们不会记录任何聊天记录。**")
     # Create columns for a better layout, e.g., 2 or 3 buttons per row
     # Adjust the number of columns based on how many prompts you have
