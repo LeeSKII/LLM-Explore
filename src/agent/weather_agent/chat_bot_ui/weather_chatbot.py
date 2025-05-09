@@ -65,7 +65,7 @@ class BaseAgent:
                         content += content_piece
                         yield content_piece
             
-            full_response = reasoning_content + content
+            full_response = f'''<reasoning>{reasoning_content}</reasoning>\n<response>{content}</response>'''
             # self.messages.append({"role": "assistant", "content": full_response}) # Add response after full stream
             # Streamlit app will handle adding the full response to history for display.
             # Agent's internal messages will be updated more strategically.
