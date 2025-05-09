@@ -9,7 +9,7 @@ from typing import Dict, Tuple, List, Any, Generator
 import json
 from litellm import completion
 import os
-from enum import StrEnum
+from strenum import StrEnum
 import sys
 
 # Add parent directory to import local packages if your structure is app/main.py and weather_prompt.py is in app/
