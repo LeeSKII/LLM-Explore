@@ -79,7 +79,6 @@ class BaseAgent:
             print(error_msg)
             yield f"<thinking>Error: Could not get response from LLM. {e}</thinking><action><attempt_completion><result>I encountered an error trying to process your request. Please try again.</result></attempt_completion></action>"
 
-
     def strip_outer_tag(self, xml_str: str) -> str:
         start = xml_str.find('>') + 1
         end = xml_str.rfind('<')
@@ -105,9 +104,14 @@ class BaseAgent:
         # 解析<action>标签
         action_content_str = ""
         try:
-            action_match = re.search(r"<action>(.*?)</action>", input_text, re.DOTALL)
-            if action_match:
-                action_content_str = action_match.group(1).strip()
+            # 找到最后一个</action>的位置
+            end_tag_pos = input_text.rfind("</action>")
+            if end_tag_pos != -1:
+                # 从最后一个</action>往前找最近的<action>
+                start_tag_pos = input_text.rfind("<action>", 0, end_tag_pos)
+                if start_tag_pos != -1:
+                    # 提取最小嵌套内容
+                    action_content_str = input_text[start_tag_pos+len("<action>"):end_tag_pos].strip()
         except Exception as e:
             print(f"Error parsing action tag: {e}")
             return self.last_thinking_content, {"error": f"Error parsing action tag: {e}", "details": "Agent will attempt completion."}
