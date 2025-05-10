@@ -64,7 +64,7 @@ Here's a structure for the tool use:
 <parameter2_name>value2</parameter2_name>
 ...
 </tool_name>
-<action>
+</action>
 
 Always adhere to this format for the tool use to ensure proper parsing and execution
 
@@ -79,6 +79,7 @@ Parameters:
   2. Be specific, actionable, and directly related to the completed task
   3. Be a complete answer to the question - the user should not need to provide additional information or fill in any missing details. DO NOT include placeholders with brackets or parentheses.
 Usage:
+<action>
 <ask_followup_question>
 <question>Your question here</question>
 <follow_up>
@@ -87,6 +88,7 @@ Your suggested answer here
 </suggest>
 </follow_up>
 </ask_followup_question>
+</action>
 Group:
 - Interact with User
 
@@ -97,11 +99,13 @@ IMPORTANT NOTE: This tool CANNOT be used until you've confirmed from the user th
 Parameters:
 - result: (required) The result of the task. Formulate this result in a way that is final and does not require further input from the user. Don't end your result with questions or offers for further assistance.
 Usage:
+<action>
 <attempt_completion>
 <result>
 Your final result description here
 </result>
 </attempt_completion>
+</action>
 Group:
 - Interact with User
 
@@ -112,9 +116,11 @@ Description: 提供全球地理位位置、全球城市搜索，支持[LocationI
 Parameters: 
 - location: (required) 需要查询地区的信息，支持[LocationID | 文字 | 以英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)]。例如 location=北京
 Usage:
+<action>
 <city_lookup>
 <location>[城市名称 | 经度,纬度 | LocationID]</location>
-</city_lookup> 
+</city_lookup>
+</action>
 Group:
 - Geographic Information
 
@@ -123,9 +129,11 @@ Description: 用于获取中国热门城市列表。
 Parameters:
 - number: (optional)(number) 返回城市的数量
 Usage:
+<action>
 <top_cities>
 <number>Number Here</number>
-</top_cities> 
+</top_cities>
+</action>
 Group:
 - Geographic Information
 
@@ -134,9 +142,11 @@ Description: 使用[LocationID|关键字|坐标]查询POI信息（景点、火�
 Parameters:
 - location: (required) 需要查询地区的信息，支持[LocationID | 文字 | 以英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)]。
 Usage:
+<action>
 <poi_lookup>
   <location>[LocationID | 文字 | 经度,纬度](prefer to use LocationID)</location>
 </poi_lookup>
+</action>
 Group:
 - Geographic Information
 
@@ -145,9 +155,11 @@ Description: 根据经纬度查询指定区域范围内查询所有POI信息。
 Parameters:
 - location: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，**小数点后两位**）。例如 location=116.41,39.92
 Usage:
+<action>
 <poi_range_search>
   <location>经度,纬度</location>
 </poi_range_search>
+</action>
 Group:
 - Geographic Information
 
@@ -158,9 +170,11 @@ Description: 根据[LocationID | 经度,纬度]获取中国3000+市县区和海�
 Parameters:
 - locationID_or_latLon: (required) 需要查询地区的LocationID或以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**），LocationID可通过属于Group `Geographic Information` 的工具获取。例如 location=101010100 或 location=116.41,39.92
 Usage:
+<action>
 <city_weather_now>
   <locationID_or_latLon>[LocationID | 经度,纬度](prefer to use LocationID)</locationID_or_latLon>
 </city_weather_now>
+</action>
 Group:
 - City Weather
 
@@ -170,10 +184,12 @@ Parameters:
 - locationID_or_latLon: (required) 需要查询地区的[LocationID | 英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)]，LocationID可通过属于Group `Geographic Information` 的工具获取。
 - forecast_days: (optional)(取值枚举[3,7,10,15,30]) 需要预报的天数,默认值为3
 Usage:
+<action>
 <city_weather_daily_forecast>
   <locationID_or_latLon>[LocationID | 经度,纬度](prefer to use LocationID)</locationID_or_latLon>
   <forecast_days>[3|7|10|15|30]</forecast_days>
 </city_weather_daily_forecast>
+</action>
 Group:
 - City Weather
 
@@ -183,10 +199,12 @@ Parameters:
 - locationID_or_latLon: (required) 需要查询地区的[LocationID | 英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)]，LocationID可通过属于Group `Geographic Information` 的工具获取。
 - hours: (optional)(取值枚举[24,72,168]) 需要预报的小时数,默认值为24
 Usage:
+<action>
 <city_weather_hourly_forecast>
   <locationID_or_latLon>[LocationID | 经度,纬度](prefer to use LocationID)</locationID_or_latLon>
   <hours>[24|72|168]</hours>
 </city_weather_hourly_forecast>
+</action>
 Group:
 - City Weather
 
@@ -197,9 +215,11 @@ Description:  获取从**今天开始**，通过经纬度获取分钟级降水�
 Parameters:
 - latLon: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**）。例如 location=116.41,39.92
 Usage:
+<action>
 <weather_rainy_forecast_minutes>
   <latLon>经度,纬度</latLon>
 </weather_rainy_forecast_minutes>
+</action>
 Group:
 - Minute-by-Minute Rainy Forecast
 
@@ -210,9 +230,11 @@ Description: 根据经纬度获取 **实时** 天气，精确到3-5公里范围�
 Parameters:
 - latLon: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**）。
 Usage:
+<action>
 <grid_weather_now>
   <latLon>经度,纬度</latLon>
 </grid_weather_now>
+</action>
 Group:
 - Gridded Weather Forecast
 
@@ -222,10 +244,12 @@ Parameters:
 - latLon: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**）。
 - forecast_days: (optional)(取值枚举：[3,7]) 需要查未来[3,7]的天气预报,默认值为3
 Usage:
+<action>
 <gird_weather_forecast>
   <latLon>经度,纬度</latLon>
   <forecast_days>[3|7]</forecast_days>
 </gird_weather_forecast>
+</action>
 Group:
 - Gridded Weather Forecast
 
@@ -235,10 +259,12 @@ Parameters:
 - latLon: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**）。
 - hours: (optional)(取值枚举：[24,72]) 需要查未来[24,72]小时的天气预报,默认值为24
 Usage:
+<action>
 <grid_weather_hourly_forecast>
   <latLon>经度,纬度</latLon>
   <hours>[24|72]</hours>
 </grid_weather_hourly_forecast>
+</action>
 Group:
 - Gridded Weather Forecast
 
@@ -250,10 +276,12 @@ Parameters:
 - locationID_or_latLon: (required) 需要查询地区的[LocationID | 英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)],LocationID可通过属于Group `Geographic Information` 的工具获取。例如 location=101010100 或 location=116.41,39.92,优先使用LocationID
 - forecast_days: (optional)(取值枚举：[1,3]) 需要查未来[1,3]天的生活指数,默认值为1
 Usage:
+<action>
 <weather_indices>
   <locationID_or_latLon>[LocationID | 经度,纬度]</locationID_or_latLon>
   <forecast_days>[1|3]</forecast_days>
 </weather_indices>
+</action>
 Group:
 - Life Indices with Weather Forecast
 
@@ -265,10 +293,12 @@ Parameters:
 - latitude: (required) 所需位置的纬度。(十进制，最多支持 **小数点后两位**)。例如 39.92
 - longitude: (required) 所需位置的经度。(十进制，最多支持 **小数点后两位**)。例如 116.41
 Usage:
+<action>
 <air_quality>
   <latitude>Latitude Here</latitude>
   <longitude>Longitude Here</longitude>
 </air_quality>
+</action>
 Group:
 - Air Quality
 
@@ -278,10 +308,12 @@ Parameters:
 - latitude: (required) 所需位置的纬度。(十进制，最多支持 **小数点后两位**)。
 - longitude: (required) 所需位置的经度。(十进制，最多支持 **小数点后两位**)。
 Usage:
+<action>
 <air_quality_hourly_forecast>
   <latitude>Latitude Here</latitude>
   <longitude>Longitude Here</longitude>
 </air_quality_hourly_forecast>
+</action>
 Group:
 - Air Quality
 
@@ -291,10 +323,12 @@ Parameters:
 - latitude: (required) 所需位置的纬度。(十进制，最多支持 **小数点后两位**)。
 - longitude: (required) 所需位置的经度。(十进制，最多支持 **小数点后两位**)。
 Usage:
+<action>
 <air_quality_daily_forecast>
   <latitude>Latitude Here</latitude>
   <longitude>Longitude Here</longitude>
 </air_quality_daily_forecast>
+</action>
 Group:
 - Air Quality
 
