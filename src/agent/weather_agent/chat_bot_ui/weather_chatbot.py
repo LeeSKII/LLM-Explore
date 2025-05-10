@@ -48,6 +48,7 @@ class BaseAgent:
                 base_url=self.base_url,
                 stream=True,
                 temperature=self.temperature,
+                max_tokens=8096,
                 num_retries=self.num_retries
             )
             full_response = ""
@@ -704,9 +705,13 @@ st.badge(f"*当前模型: `{MODEL_INFO['model_name']}`*")
 # --- Initial Conversation Starters ---
 INITIAL_PROMPTS = [
     "长沙未来6个小时的天气怎么样？",
+    '长沙现在的雨什么时候停？',
+    '长沙的未来几天的空气质量如何？',
+    '成都的天气如何？',
+    '116.41,39.92的天气如何?',
     "未来三天上海会下雨吗？",
     "本周末的天气适合在长沙进行哪些户外活动。",
-    "查询广州当前空气质量指数。",
+    "查询广州当前空气质量。",
     "山东泰山明天和后天的天气预报是？",
     "下周一去昆明出差10天，天气如何，需要准备什么？"
 ]
@@ -803,7 +808,7 @@ def run_full_agent_turn_and_manage_ui(initial_user_input: str = None):
             {"type": "info", "title": "ℹ️ User Input Received by Agent", "content": f"Agent processing: {initial_user_input}"}
         )
 
-    MAX_AGENT_STEPS = 50 # Reduced for mock safety
+    MAX_AGENT_STEPS = 10 # Reduced for mock safety
     final_status = "error"
     final_message_for_ui = "Agent processing encountered an issue."
 
