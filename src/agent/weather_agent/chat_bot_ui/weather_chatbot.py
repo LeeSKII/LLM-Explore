@@ -701,7 +701,7 @@ INITIAL_PROMPTS = [
 
 initial_prompts_placeholder = st.empty()
 
-if not st.session_state.messages: # Only show if chat is empty and use length of messages equals 1 to fix streamlit bug when code not in this block but view still exist.
+if not st.session_state.messages: # Only show if chat is empty
     with initial_prompts_placeholder.container():
         st.markdown("❤️ **我们不会记录任何聊天记录。**")
         st.caption("模型速度和精度: QWen Turbo, 14b, 8b, Gemini Flash 1.5 ⚡️ | QWen-235b, DeepSeek 🕵️") 
@@ -733,7 +733,6 @@ else:
     initial_prompts_placeholder.empty() # Explicitly clear if messages exist
 
 # ... (现有聊天记录显示代码) ...
-# Display chat history from st.session_state.messages (UI display history)
 for i, msg_data in enumerate(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]): 
     avatar = "🧑‍💻" if msg_data["role"] == "user" else "🦖"
     with st.chat_message(msg_data["role"],avatar=avatar):
