@@ -508,7 +508,8 @@ class ModelChoice(StrEnum):
     DEEPSEEK_REASONER = "deepseek-reasoner"
     OPENER_ROUTER_GEMINI_1_5_FLASH = 'open-router-gemini-flash_1_5'
     OPENER_ROUTER_GEMINI_1_5_FLASH_8B = 'open-router-gemini-flash_1_5_8b'
-    QWEN3_235B = 'openai/qwen3-235b-a22b'
+    QWEN3_235B_A22B = 'openai/qwen3-235b-a22b'
+    QWEN3_30B_A3B = 'openai/qwen3-30b-a3b'
     QWEN3_14B = 'openai/qwen3-14b'
     QWEN3_8B = 'openai/qwen3-8b'
     QWEN3_4B = 'openai/qwen3-4b'
@@ -549,8 +550,13 @@ MODEL_CONFIGS = {
         'api_key': QWEN_API_KEY,
         'base_url': QWEN_API_BASE_URL
     },
-    ModelChoice.QWEN3_235B: {
+    ModelChoice.QWEN3_235B_A22B: {
         'model_name': 'openai/qwen3-235b-a22b',
+        'api_key': QWEN_API_KEY,
+        'base_url': QWEN_API_BASE_URL
+    },
+    ModelChoice.QWEN3_30B_A3B: {
+        'model_name': 'openai/qwen3-30b-a3b',
         'api_key': QWEN_API_KEY,
         'base_url': QWEN_API_BASE_URL
     },
