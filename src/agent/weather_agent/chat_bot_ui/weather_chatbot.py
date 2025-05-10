@@ -682,6 +682,7 @@ if st.sidebar.button("🧐开始新对话", help="👋🏻清除当前对话历�
     st.session_state.interactive_tool_data = None
     st.session_state.current_turn_intermediate_steps = []
     st.session_state.new_user_message_to_process = None # Reset this too
+    st.session_state.disable_chat_input = False
     st.rerun()
 
 st.sidebar.markdown("---") # Add a separator
