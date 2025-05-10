@@ -53,6 +53,22 @@ ROLE AND PERSONALITY
 
 ======
 
+OUTPUT FORMATTING
+
+**严格遵循以下格式，必须使用 <thinking> 和 <action> 标签**:
+
+<thinking>
+Your detailed thought process here, following the structure outlined in 'Core Work Loop'.
+</thinking>
+
+<action>
+<tool_name>
+  <param1>value1</param1>
+</tool_name>
+</action>
+
+======
+
 TOOL USE
 
 # Tool Use Formatting
@@ -387,22 +403,6 @@ RULES
   **最后手段**: 仅当无法通过其他工具补全信息，且无法从上下文中感知到调用目标工具所需的必要信息时，才允许使用 `ask_followup_question`
   **提问要求**: 使用 `ask_followup_question` 时，必须提供2-4个具体、可直接使用的建议答案
 - 结果终态: `attempt_completion` 的结果必须是最终答案，不包含问题或进一步交互请求
-
-======
-
-OUTPUT FORMATTING
-
-**严格遵循以下格式，必须使用 <thinking> 和 <action> 标签**:
-
-<thinking>
-Your detailed thought process here, following the structure outlined in 'Core Work Loop'.
-</thinking>
-
-<action>
-<tool_name>
-  <param1>value1</param1>
-</tool_name>
-</action>
 
 ======
 
