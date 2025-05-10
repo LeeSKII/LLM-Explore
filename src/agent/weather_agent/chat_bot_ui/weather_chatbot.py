@@ -700,7 +700,7 @@ st.session_state.is_debug_mode = st.sidebar.checkbox(
 # ============main chat UI===================
 
 st.title("Weather Agent 🤖🌦️")
-st.badge(f"*当前模型: `{MODEL_INFO['model_name']}`*")
+st.badge(f"*当前模型: `{MODEL_INFO['model_name'].split('/')[-1]}`*")
 
 # --- Initial Conversation Starters ---
 INITIAL_PROMPTS = [
