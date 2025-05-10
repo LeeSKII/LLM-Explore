@@ -704,7 +704,6 @@ if not st.session_state.messages: # Only show if chat is empty
     st.caption("模型速度和精度: QWen Turbo, 14b, 8b, Gemini Flash 1.5 ⚡️ | QWen-235b, DeepSeek 🕵️") 
     st.markdown("你好！我是天气助手智能体，我的运行逻辑完全由AI驱动。自主调用**和风天气Weather Tools**获取真实天气数据，并提供建议。你可以问我关于天气或者任何你感兴趣的问题，或者试试下面的常见问题：")
     
-    
     # Create columns for a better layout, e.g., 2 or 3 buttons per row
     # Adjust the number of columns based on how many prompts you have
     num_cols = 2 
@@ -712,7 +711,7 @@ if not st.session_state.messages: # Only show if chat is empty
     for i, prompt_text in enumerate(INITIAL_PROMPTS):
         button_key = f"initial_prompt_{i}"
         # Use use_container_width for buttons to fill column width
-        if cols[i % num_cols].button(prompt_text, key=button_key, use_container_width=True):
+        if cols[i % num_cols].button(prompt_text, key=button_key, use_container_width=True,disabled=st.session_state.get('disable_chat_input', False)):
             # This will be picked up by the input handling logic below
             # We can reuse the 'clicked_suggestion' logic or a new state var
             # For simplicity, let's assume it sets current_run_user_input directly
@@ -721,6 +720,9 @@ if not st.session_state.messages: # Only show if chat is empty
             st.session_state.clicked_suggestion = prompt_text 
             if st.session_state.is_debug_mode:
                 print(f"Initial prompt button '{prompt_text}' clicked.")
+            
+            # Disable input until the next turn
+            st.session_state.disable_chat_input = True
             # A rerun is needed for the input logic to pick up clicked_suggestion
             st.rerun() 
     st.markdown("---") # Add a separator
