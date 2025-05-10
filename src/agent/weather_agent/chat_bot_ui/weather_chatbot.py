@@ -706,7 +706,8 @@ INITIAL_PROMPTS = [
     "未来三天上海会下雨吗？",
     "本周末的天气适合在长沙进行哪些户外活动。",
     "查询广州当前空气质量指数。",
-    "山东泰山明天和后天的天气预报是？"
+    "山东泰山明天和后天的天气预报是？",
+    "下周一去昆明出差10天，天气如何，需要准备什么？"
 ]
 
 initial_prompts_placeholder = st.empty()
@@ -714,7 +715,7 @@ initial_prompts_placeholder = st.empty()
 if not st.session_state.messages: # Only show if chat is empty
     with initial_prompts_placeholder.container():
         st.markdown("❤️ **我们不会记录任何聊天记录。**")
-        st.caption("模型速度和精度: QWen Turbo, 14b, 8b, Gemini Flash 1.5 ⚡️ | QWen-235b, DeepSeek 🕵️") 
+        st.caption("⚡️模型速度: 「QWen Turbo, 30b-a3b, 14b, 8b, 4b Gemini Flash 1.5」 | 🕵️精度: 「QWen-235b-a22b, DeepSeek」 ") 
         st.markdown("你好！我是天气助手智能体，我的运行逻辑完全由AI驱动。自主调用**和风天气Weather Tools**获取真实天气数据，并提供建议。你可以问我关于天气或者任何你感兴趣的问题，或者试试下面的常见问题：")
         
         # Create columns for a better layout, e.g., 2 or 3 buttons per row
