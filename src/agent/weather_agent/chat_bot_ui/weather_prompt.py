@@ -119,7 +119,7 @@ Parameters:
 Usage:
 <action>
 <city_lookup>
-<location>[城市名称 | 经度,纬度 | LocationID]</location>
+<location>[城市名称 | lon,lat | LocationID]</location>
 </city_lookup>
 </action>
 Group:
@@ -139,13 +139,13 @@ Group:
 - Geographic Information
 
 ## 5. poi_lookup
-Description: 使用[LocationID|关键字|坐标]查询POI信息（景点、火车站、飞机场、港口等）。
+Description: 使用[关键字|LocationID|坐标]查询POI信息（景点、火车站、飞机场、港口等）。
 Parameters:
-- location: (required) 需要查询地区的信息，支持[LocationID | 文字 | 以英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)]。
+- location: (required) 需要查询地区的信息，支持[LocationID | 关键字 | 以英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)]。
 Usage:
 <action>
 <poi_lookup>
-  <location>[LocationID | 文字 | 经度,纬度](prefer to use LocationID)</location>
+  <location>[关键字 | LocationID | lon,lat](优先使用关键字)</location>
 </poi_lookup>
 </action>
 Group:
@@ -154,11 +154,11 @@ Group:
 ## 6. poi_range_search
 Description: 根据经纬度查询指定区域范围内查询所有POI信息。
 Parameters:
-- location: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，**小数点后两位**）。例如 location=116.41,39.92
+- location: (required) 需要查询地区的以英文逗号分隔的[lon,lat]坐标（十进制，**小数点后两位**）。例如 location=116.41,39.92
 Usage:
 <action>
 <poi_range_search>
-  <location>经度,纬度</location>
+  <location>lon,lat</location>
 </poi_range_search>
 </action>
 Group:
@@ -173,7 +173,7 @@ Parameters:
 Usage:
 <action>
 <city_weather_now>
-  <locationID_or_latLon>[LocationID | 经度,纬度](prefer to use LocationID)</locationID_or_latLon>
+  <locationID_or_latLon>[LocationID | lon,lat](prefer to use LocationID)</locationID_or_latLon>
 </city_weather_now>
 </action>
 Group:
@@ -187,7 +187,7 @@ Parameters:
 Usage:
 <action>
 <city_weather_daily_forecast>
-  <locationID_or_latLon>[LocationID | 经度,纬度](prefer to use LocationID)</locationID_or_latLon>
+  <locationID_or_latLon>[LocationID | lon,lat](prefer to use LocationID)</locationID_or_latLon>
   <forecast_days>[3|7|10|15|30]</forecast_days>
 </city_weather_daily_forecast>
 </action>
@@ -202,7 +202,7 @@ Parameters:
 Usage:
 <action>
 <city_weather_hourly_forecast>
-  <locationID_or_latLon>[LocationID | 经度,纬度](prefer to use LocationID)</locationID_or_latLon>
+  <locationID_or_latLon>[LocationID | lon,lat](prefer to use LocationID)</locationID_or_latLon>
   <hours>[24|72|168]</hours>
 </city_weather_hourly_forecast>
 </action>
@@ -218,7 +218,7 @@ Parameters:
 Usage:
 <action>
 <weather_rainy_forecast_minutes>
-  <latLon>经度,纬度</latLon>
+  <latLon>lon,lat</latLon>
 </weather_rainy_forecast_minutes>
 </action>
 Group:
@@ -233,7 +233,7 @@ Parameters:
 Usage:
 <action>
 <grid_weather_now>
-  <latLon>经度,纬度</latLon>
+  <latLon>lon,lat</latLon>
 </grid_weather_now>
 </action>
 Group:
@@ -247,7 +247,7 @@ Parameters:
 Usage:
 <action>
 <gird_weather_forecast>
-  <latLon>经度,纬度</latLon>
+  <latLon>lon,lat</latLon>
   <forecast_days>[3|7]</forecast_days>
 </gird_weather_forecast>
 </action>
@@ -262,7 +262,7 @@ Parameters:
 Usage:
 <action>
 <grid_weather_hourly_forecast>
-  <latLon>经度,纬度</latLon>
+  <latLon>lon,lat</latLon>
   <hours>[24|72]</hours>
 </grid_weather_hourly_forecast>
 </action>
@@ -279,7 +279,7 @@ Parameters:
 Usage:
 <action>
 <weather_indices>
-  <locationID_or_latLon>[LocationID | 经度,纬度]</locationID_or_latLon>
+  <locationID_or_latLon>[LocationID | lon,lat]</locationID_or_latLon>
   <forecast_days>[1|3]</forecast_days>
 </weather_indices>
 </action>
