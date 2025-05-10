@@ -4,7 +4,7 @@ import time
 import jwt
 import httpx
 import re
-import xml.etree.ElementTree as ET
+from lxml import etree
 from typing import Dict, Tuple, List, Any, Generator
 import json
 from litellm import completion
@@ -88,16 +88,22 @@ class BaseAgent:
         return xml_str # Return original if not typical tag structure
 
     def parse_input_text(self, input_text: str) -> Tuple[str, Dict[str, Any]]:
+        # 初始化返回变量
+        thinking_content = ""
+        tool_info: Dict[str, Any] = {}
+        
+        # 解析<thinking>标签
         try:
             thinking_match = re.search(r"<thinking>(.*?)</thinking>", input_text, re.DOTALL)
             if thinking_match:
                 thinking_content = thinking_match.group(1).strip()
-            self.last_thinking_content = thinking_content 
+            self.last_thinking_content = thinking_content
         except Exception as e:
             print(f"Error parsing thinking tag: {e}")
             self.last_thinking_content = f"Error parsing thinking: {e}"
 
-        action_content_str = "" # Renamed to avoid conflict
+        # 解析<action>标签
+        action_content_str = ""
         try:
             action_match = re.search(r"<action>(.*?)</action>", input_text, re.DOTALL)
             if action_match:
@@ -106,76 +112,85 @@ class BaseAgent:
             print(f"Error parsing action tag: {e}")
             return self.last_thinking_content, {"error": f"Error parsing action tag: {e}", "details": "Agent will attempt completion."}
 
-        tool_info: Dict[str, Any] = {}
+        # 如果没有action内容，尝试完成
         if not action_content_str:
-            # ... (fallback to attempt_completion as before) ...
             llm_direct_response = re.sub(r"<thinking>.*?</thinking>", "", input_text, flags=re.DOTALL).strip()
             if not llm_direct_response and not self.last_thinking_content:
-                 llm_direct_response = "I'm not sure how to respond to that. Can you try rephrasing?"
+                llm_direct_response = "I'm not sure how to respond to that. Can you try rephrasing?"
             elif not llm_direct_response and self.last_thinking_content:
-                 llm_direct_response = self.last_thinking_content 
+                llm_direct_response = self.last_thinking_content
             tool_info["tool_name"] = "attempt_completion"
             tool_info["parameters"] = {"result": llm_direct_response}
             return self.last_thinking_content, tool_info
 
         try:
-            # ... (existing XML parsing logic up to extracting tool_name and params) ...
-            tool_element_root = ET.fromstring(action_content_str) 
-            tool_name = tool_element_root.tag
-            tool_info["tool_name"] = tool_name
+            # 使用lxml的容错解析器
+            parser = etree.XMLParser(recover=True, remove_blank_text=True)
             
-            params = {}
-            for param_element in tool_element_root:
-                param_tag = param_element.tag
+            # 直接解析action内容
+            try:
+                tool_element = etree.fromstring(action_content_str, parser=parser)
+                tool_name = tool_element.tag
+                tool_info["tool_name"] = tool_name
                 
-                # Collect all inner text and XML, preserving structure for tags like <suggest>
-                # This involves iterating through child nodes and their text/tail content.
-                # A simpler way if params are expected to be mostly text or simple nested tags:
-                inner_content_parts = []
-                if param_element.text: # Text before the first child
-                    inner_content_parts.append(param_element.text) # Keep leading/trailing spaces for now, strip later
+                params = {}
+                for param_element in tool_element.iterchildren():
+                    param_tag = param_element.tag
+                    
+                    # 收集所有内部内容
+                    inner_content_parts = []
+                    if param_element.text:
+                        inner_content_parts.append(param_element.text)
+                    
+                    for child_node in param_element.iterchildren():
+                        inner_content_parts.append(etree.tostring(child_node, encoding='unicode'))
+                        if child_node.tail:
+                            inner_content_parts.append(child_node.tail)
+                    
+                    param_value_str = "".join(inner_content_parts).strip()
+                    params[param_tag] = param_value_str
                 
-                for child_node in param_element:
-                    # Add the string representation of the child tag itself
-                    inner_content_parts.append(ET.tostring(child_node, encoding='unicode'))
-                    # Add text that comes after the child tag (tail)
-                    # if child_node.tail: # Tail text is often stripped or part of next text node.
-                    #    inner_content_parts.append(child_node.tail)
+                tool_info["parameters"] = params
 
-                param_value_str = "".join(inner_content_parts).strip()
-                params[param_tag] = param_value_str
-            
-            tool_info["parameters"] = params
-
-            # --- NEW: Parse suggestions if tool is ask_followup_question ---
-            if tool_name == "ask_followup_question" and "follow_up" in params:
-                follow_up_content = params["follow_up"] # This is a string like "<suggest>A</suggest><suggest>B</suggest>"
-                suggestions = []
-                try:
-                    # Wrap in a root to parse potentially multiple suggest tags
-                    suggest_root = ET.fromstring(f"<root_suggest>{follow_up_content}</root_suggest>")
-                    for suggest_element in suggest_root.findall("suggest"):
-                        if suggest_element.text:
-                            suggestions.append(suggest_element.text.strip())
-                    if suggestions:
-                        tool_info["parameters"]["suggestions"] = suggestions
-                        # Optionally remove raw follow_up if it's now redundant
-                        # del tool_info["parameters"]["follow_up"] 
-                except ET.ParseError as pe:
-                    print(f"Could not parse <suggest> tags in follow_up: {pe}. Content: {follow_up_content}")
-            # --- END NEW ---
-            
-        except ET.ParseError as e:
-            # ... (error handling as before) ...
+                # 解析建议（如果是ask_followup_question工具）
+                if tool_name == "ask_followup_question" and "follow_up" in params:
+                    follow_up_content = params["follow_up"]
+                    suggestions = []
+                    try:
+                        # 直接解析suggest标签，假设格式正确
+                        suggest_parser = etree.XMLParser(recover=True)
+                        suggest_elements = etree.fromstring(follow_up_content, parser=suggest_parser)
+                        
+                        # 处理单个或多个suggest标签
+                        if suggest_elements.tag == "suggest":
+                            # 单个suggest标签情况
+                            if suggest_elements.text:
+                                suggestions.append(suggest_elements.text.strip())
+                        else:
+                            # 多个suggest标签情况（需要遍历）
+                            for suggest_element in suggest_elements.xpath("//suggest"):
+                                if suggest_element.text:
+                                    suggestions.append(suggest_element.text.strip())
+                        
+                        if suggestions:
+                            tool_info["parameters"]["suggestions"] = suggestions
+                    except etree.XMLSyntaxError as pe:
+                        print(f"Could not parse <suggest> tags in follow_up: {pe}. Content: {follow_up_content}")
+                        
+            except etree.XMLSyntaxError as e:
+                print(f"XML parsing error: {e}")
+                raise ValueError("Invalid XML format in action content")
+                
+        except Exception as e:
             error_detail = f"Error parsing XML in action tag: {e}. Content: '{action_content_str}'"
             print(error_detail)
             tool_info["tool_name"] = "attempt_completion"
             tool_info["parameters"] = {"result": f"I had trouble processing my internal action steps. The details were: {action_content_str}"}
-            tool_info["error"] = error_detail 
+            tool_info["error"] = error_detail
             return self.last_thinking_content, tool_info
         
         return self.last_thinking_content, tool_info
-
+    
     def hook_interactive(self, tool_name: str) -> bool:
         return tool_name in ['ask_followup_question', 'attempt_completion'] # Make attempt_completion potentially interactive for confirmation
 
@@ -655,7 +670,7 @@ st.badge(f"*当前模型: `{MODEL_INFO['model_name']}`*")
 
 # --- Initial Conversation Starters ---
 INITIAL_PROMPTS = [
-    "当前长沙的天气怎么样？",
+    "长沙未来6个小时的天气怎么样？",
     "未来三天上海会下雨吗？",
     "本周末的天气适合在长沙进行哪些户外活动。",
     "查询广州当前空气质量指数。",
