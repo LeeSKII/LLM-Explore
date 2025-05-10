@@ -683,7 +683,7 @@ st.session_state.is_debug_mode = st.sidebar.checkbox(
 
 # ============main chat UI===================
 
-st.title("Weather Agent Chatbot 🤖🌦️")
+st.title("Weather Agent 🤖🌦️")
 st.badge(f"*当前模型: `{MODEL_INFO['model_name']}`*")
 
 # --- Initial Conversation Starters ---
@@ -696,9 +696,11 @@ INITIAL_PROMPTS = [
 ]
 
 if not st.session_state.messages: # Only show if chat is empty
-    st.markdown("你好！我是天气助手智能体，我的运行逻辑完全由AI驱动。自主调用和风天气Weather Tools获取真实天气数据，并提供建议。你可以问我关于天气或者任何你感兴趣的问题，或者试试下面的常见问题：")
-    st.caption("推荐模型: QWen Turbo YYDS 😂") 
     st.markdown("❤️ **我们不会记录任何聊天记录。**")
+    st.caption("模型速度和精度: QWen Turbo, 14b, 8b, Gemini Flash 1.5 ⚡️ | QWen-235b, DeepSeek 🕵️") 
+    st.markdown("你好！我是天气助手智能体，我的运行逻辑完全由AI驱动。自主调用**和风天气Weather Tools**获取真实天气数据，并提供建议。你可以问我关于天气或者任何你感兴趣的问题，或者试试下面的常见问题：")
+    
+    
     # Create columns for a better layout, e.g., 2 or 3 buttons per row
     # Adjust the number of columns based on how many prompts you have
     num_cols = 2 
@@ -722,7 +724,8 @@ if not st.session_state.messages: # Only show if chat is empty
 # ... (现有聊天记录显示代码) ...
 # Display chat history from st.session_state.messages (UI display history)
 for i, msg_data in enumerate(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]): 
-    with st.chat_message(msg_data["role"]):
+    avatar = "🧑‍💻" if msg_data["role"] == "user" else "🦖"
+    with st.chat_message(msg_data["role"],avatar=avatar):
         if msg_data["role"] == "assistant" and "intermediate_steps" in msg_data and msg_data["intermediate_steps"]:
             is_last_message = (i == len(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]) - 1)
             if st.session_state.auto_expand_agent_process:
@@ -915,7 +918,7 @@ if 'clicked_suggestion' in st.session_state and st.session_state.clicked_suggest
 else:
     # Only display chat_input if we are not about to process a clicked suggestion.
     # Key added for consistency, though st.chat_input value is typically consumed on submit.
-    chat_input_value = st.chat_input("What would you like to know about the weather?", key="main_chat_input_widget")
+    chat_input_value = st.chat_input("关于任何天气信息", key="main_chat_input_widget")
     if chat_input_value:
         current_run_user_input = chat_input_value
         if st.session_state.is_debug_mode:
