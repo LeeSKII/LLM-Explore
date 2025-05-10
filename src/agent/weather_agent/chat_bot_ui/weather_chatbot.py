@@ -699,7 +699,7 @@ INITIAL_PROMPTS = [
     "山东泰山明天和后天的天气预报是？"
 ]
 
-if not st.session_state.messages: # Only show if chat is empty
+if not st.session_state.messages or len(st.session_state.messages) == 1: # Only show if chat is empty and use length of messages equals 1 to fix streamlit bug when code not in this block but view still exist.
     st.markdown("❤️ **我们不会记录任何聊天记录。**")
     st.caption("模型速度和精度: QWen Turbo, 14b, 8b, Gemini Flash 1.5 ⚡️ | QWen-235b, DeepSeek 🕵️") 
     st.markdown("你好！我是天气助手智能体，我的运行逻辑完全由AI驱动。自主调用**和风天气Weather Tools**获取真实天气数据，并提供建议。你可以问我关于天气或者任何你感兴趣的问题，或者试试下面的常见问题：")
