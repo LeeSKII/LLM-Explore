@@ -307,8 +307,8 @@ Group:
 ## 15. air_quality
 Description: 根据经度和纬度获取指定地点的实时空气质量数据,精度为1x1公里,空气质量数据包括:AQI、AQI等级、颜色和首要污染物,污染物浓度值、分指数,健康建议,相关联的监测站(站点ID和NAME)信息。
 Parameters:
-- latitude: (required) 所需位置的纬度。(十进制，最多支持 **小数点后两位**)。例如 39.92
-- longitude: (required) 所需位置的经度。(十进制，最多支持 **小数点后两位**)。例如 116.41
+- latitude: (required) 所需位置的纬度。
+- longitude: (required) 所需位置的经度。
 Usage:
 <action>
 <air_quality>
@@ -322,8 +322,8 @@ Group:
 ## 16. air_quality_hourly_forecast
 Description: 根据经度和纬度获取未来24小时空气质量的数据，包括AQI、污染物浓度、分指数以及健康建议。
 Parameters:
-- latitude: (required) 所需位置的纬度。(十进制，最多支持 **小数点后两位**)。
-- longitude: (required) 所需位置的经度。(十进制，最多支持 **小数点后两位**)。
+- latitude: (required) 所需位置的纬度。
+- longitude: (required) 所需位置的经度。
 Usage:
 <action>
 <air_quality_hourly_forecast>
@@ -337,8 +337,8 @@ Group:
 ## 17. air_quality_daily_forecast
 Description: 根据经度和纬度获取未来3天的每日空气质量（AQI）预报、污染物浓度值和健康建议。
 Parameters:
-- latitude: (required) 所需位置的纬度。(十进制，最多支持 **小数点后两位**)。
-- longitude: (required) 所需位置的经度。(十进制，最多支持 **小数点后两位**)。
+- latitude: (required) 所需位置的纬度。
+- longitude: (required) 所需位置的经度。
 Usage:
 <action>
 <air_quality_daily_forecast>
