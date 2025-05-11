@@ -1,3 +1,5 @@
+import dis
+from requests import session
 import streamlit as st
 from dotenv import load_dotenv
 import time
@@ -522,7 +524,6 @@ class ModelChoice(StrEnum):
     QWEN3_1_7B = 'qwen/qwen3-1.7b'
     SILICON_QWEN3_235B_A22B = 'silicon/qwen3-235b-a22b'
     SILICON_QWEN3_8B = 'silicon/qwen3-8b'
-    SILICON_GLM_Z1_32B = 'silicon/glm-z1-32b'
     SILICON_DEEPSEEK_R1 = 'silicon/deepseek-r1'
     
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "YOUR_DEEPSEEK_API_KEY")
@@ -612,13 +613,12 @@ MODEL_CONFIGS = {
         'model_name': 'openai/deepseek-ai/DeepSeek-R1',
         'api_key': SILICON_API_KEY,
         'base_url': SILICON_API_BASE_URL
-    },
-    ModelChoice.SILICON_GLM_Z1_32B: {
-        'model_name': 'openai/THUDM/GLM-Z1-32B-0414',
-        'api_key': SILICON_API_KEY,
-        'base_url': SILICON_API_BASE_URL
-    },
+    }
 }
+
+# 控制是否禁止用户输入
+if 'disable_chat_input' not in st.session_state:
+    st.session_state.disable_chat_input = False
 
 # ============sidebar settings=================
 
@@ -628,7 +628,8 @@ selected_model_key = st.sidebar.selectbox(
     "选择模型:", 
     options=list(ModelChoice), 
     format_func=lambda x: x.value,
-    help="选择驱动 Agent 的大语言模型。"
+    help="选择驱动 Agent 的大语言模型。",
+    disabled=st.session_state.disable_chat_input
 )
 MODEL_INFO = MODEL_CONFIGS[selected_model_key]
 
@@ -637,7 +638,8 @@ current_system_prompt = st.sidebar.text_area(
     "System Prompt:", 
     value=st.session_state.system_prompt, 
     height=300,
-    help="定义 Agent 的核心行为和角色。修改后会开启新的对话。"
+    help="定义 Agent 的核心行为和角色。修改后会开启新的对话。",
+    disabled=st.session_state.disable_chat_input
 ) 
 
 if 'model_temperature' not in st.session_state:
@@ -648,7 +650,8 @@ st.session_state.model_temperature = st.sidebar.slider(
     max_value=1.0,
     value=st.session_state.model_temperature, # 从 session_state 读取当前值
     step=0.05, # 步长可以根据需要调整
-    help="控制模型输出的随机性。较低的值使输出更具确定性和一致性，较高的值使其更具创造性和多样性。范围 0.0 - 1.0。"
+    help="控制模型输出的随机性。较低的值使输出更具确定性和一致性，较高的值使其更具创造性和多样性。范围 0.0 - 1.0。",
+    disabled=st.session_state.disable_chat_input
 )
 
 if 'auto_expand_agent_process' not in st.session_state:
@@ -656,12 +659,9 @@ if 'auto_expand_agent_process' not in st.session_state:
 st.session_state.auto_expand_agent_process = st.sidebar.toggle( # 或者 st.checkbox
     "思考过程",
     value=st.session_state.auto_expand_agent_process,
-    help="开启后，最新的 Agent 处理步骤详情将默认展开。关闭则默认折叠。"
+    help="开启后，最新的 Agent 处理步骤详情将默认展开。关闭则默认折叠。",
+    disabled=st.session_state.disable_chat_input
 )
-
-# 控制是否禁止用户输入
-if 'disable_chat_input' not in st.session_state:
-    st.session_state.disable_chat_input = False
 
 if 'is_debug_mode' not in st.session_state: st.session_state.is_debug_mode = False
 
@@ -727,7 +727,8 @@ st.sidebar.markdown("**Author:** *Ski Lee*")
 st.session_state.is_debug_mode = st.sidebar.checkbox(
     "Enable Agent Debug Mode", 
     value=st.session_state.is_debug_mode,
-    help="开启后，控制台会输出详细的 Agent 运行日志，聊天界面会显示 Agent 的思考过程和工具调用详情。"
+    help="开启后，控制台会输出详细的 Agent 运行日志，聊天界面会显示 Agent 的思考过程和工具调用详情。",
+    disabled=st.session_state.disable_chat_input
 )
 
 # ============main chat UI===================
@@ -738,6 +739,7 @@ st.badge(f"*当前模型: `{MODEL_INFO['model_name'].split('/')[-1]}`*")
 # --- Initial Conversation Starters ---
 INITIAL_PROMPTS = [
     "长沙未来6个小时的天气怎么样？",
+    "长沙未来一周天气怎么样？",
     '长沙现在的雨什么时候停？',
     '长沙的未来几天的空气质量如何？',
     '成都的天气如何？',
