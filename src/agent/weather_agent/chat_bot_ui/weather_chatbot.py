@@ -515,6 +515,7 @@ class ModelChoice(StrEnum):
     OPENER_ROUTER_GEMINI_1_5_FLASH_8B = 'open-router/gemini-flash_1_5_8b'
     QWEN3_235B_A22B = 'qwen/qwen3-235b-a22b'
     QWEN3_30B_A3B = 'qwen/qwen3-30b-a3b'
+    QWEN3_32B = 'qwen/qwen3-32b'
     QWEN3_14B = 'qwen/qwen3-14b'
     QWEN3_8B = 'qwen/qwen3-8b'
     QWEN3_4B = 'qwen/qwen3-4b'
@@ -568,6 +569,11 @@ MODEL_CONFIGS = {
     },
     ModelChoice.QWEN3_30B_A3B: {
         'model_name': 'openai/qwen3-30b-a3b',
+        'api_key': QWEN_API_KEY,
+        'base_url': QWEN_API_BASE_URL
+    },
+    ModelChoice.QWEN3_32B: {
+        'model_name': 'openai/qwen3-32b',
         'api_key': QWEN_API_KEY,
         'base_url': QWEN_API_BASE_URL
     },
