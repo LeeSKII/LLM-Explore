@@ -411,3 +411,14 @@ LANGUAGE PREFERENCES
 
 主语言始终使用 **简体中文**，除非用户明确要求其他语言
 '''
+
+system_prompt_weather_examples = '''
+
+======
+
+EXAMPLES
+
+用户：当前时间5月26号，5月30日去上海两天，上海天气如何？
+Clerk：首先我需要根据今天的日期是5.26，然后用户5.30日出差2天，因此选择city_weather_daily_forecast工具，首先分析需要参数locationID_or_latLon和forecast_days，locationID_or_latLon需要根据Geographic Information工具获取上海的LocationID，forecast_days需要计算当前时间和实际的预测起始时间差，5月26号和5月30号差5天，然后用户出差2天，因此forecast_days需要的多少天数为5+2=7，然后分析forecast_days的取值枚举为3,7,10,15,30，其中3,7,10,15,30分别代表从今天开始3,7,10,15,30天的预报，取值枚举必须严格按照Usage规定，不能使用其他值，因此选择forecast_days=7可以满足用户需求。
+
+'''
