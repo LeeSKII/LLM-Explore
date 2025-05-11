@@ -508,17 +508,20 @@ MAX_MESSAGES_DISPLAY = 50
 DEFAULT_SYSTEM_PROMPT = weather_system_prompt_cot if 'weather_system_prompt_cot' in globals() else "You are a helpful weather assistant."
 
 class ModelChoice(StrEnum):
-    QWEN_TURBO = 'openai/qwen-turbo-latest'
-    DEEPSEEK = "deepseek-chat"
-    DEEPSEEK_REASONER = "deepseek-reasoner"
-    OPENER_ROUTER_GEMINI_1_5_FLASH = 'open-router-gemini-flash_1_5'
-    OPENER_ROUTER_GEMINI_1_5_FLASH_8B = 'open-router-gemini-flash_1_5_8b'
-    QWEN3_235B_A22B = 'openai/qwen3-235b-a22b'
-    QWEN3_30B_A3B = 'openai/qwen3-30b-a3b'
-    QWEN3_14B = 'openai/qwen3-14b'
-    QWEN3_8B = 'openai/qwen3-8b'
-    QWEN3_4B = 'openai/qwen3-4b'
-    QWEN3_1_7B = 'openai/qwen3-1.7b'
+    QWEN_TURBO = 'qwen/qwen-turbo-latest'
+    DEEPSEEK = "deepseek/deepseek-chat"
+    DEEPSEEK_REASONER = "deepseek/deepseek-reasoner"
+    OPENER_ROUTER_GEMINI_1_5_FLASH = 'open-router/gemini-flash_1_5'
+    OPENER_ROUTER_GEMINI_1_5_FLASH_8B = 'open-router/gemini-flash_1_5_8b'
+    QWEN3_235B_A22B = 'qwen/qwen3-235b-a22b'
+    QWEN3_30B_A3B = 'qwen/qwen3-30b-a3b'
+    QWEN3_14B = 'qwen/qwen3-14b'
+    QWEN3_8B = 'qwen/qwen3-8b'
+    QWEN3_4B = 'qwen/qwen3-4b'
+    QWEN3_1_7B = 'qwen/qwen3-1.7b'
+    SILICON_QWEN3_235B_A22B = 'silicon/qwen3-235b-a22b'
+    SILICON_QWEN3_8B = 'silicon/qwen3-8b'
+    SILICON_GLM_Z1_32B = 'silicon/glm-z1-32b'
     
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "YOUR_DEEPSEEK_API_KEY")
 DEEPSEEK_API_BASE_URL = os.getenv("DEEPSEEK_API_BASE_URL", "YOUR_DEEPSEEK_API_BASE_URL")
@@ -528,6 +531,9 @@ OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "YOUR_OPENROUTER_BASE_URL
 
 QWEN_API_KEY = os.getenv("QWEN_API_KEY", "YOUR_QWEN_API_KEY")
 QWEN_API_BASE_URL = os.getenv("QWEN_API_BASE_URL", "YOUR_QWEN_API_BASE_URL")
+
+SILICON_API_KEY = os.getenv("SILICON_API_KEY", "YOUR_SILICON_API_KEY")
+SILICON_API_BASE_URL = os.getenv("SILICON_API_BASE_URL", "YOUR_SILICON_API_BASE_URL")
 
 MODEL_CONFIGS = {
     ModelChoice.DEEPSEEK: {
@@ -584,7 +590,22 @@ MODEL_CONFIGS = {
         'model_name': 'openai/qwen3-1.7b',
         'api_key': QWEN_API_KEY,
         'base_url': QWEN_API_BASE_URL
-    }
+    },
+    ModelChoice.SILICON_QWEN3_235B_A22B: {
+        'model_name': 'openai/Qwen/Qwen3-235B-A22B',
+        'api_key': SILICON_API_KEY,
+        'base_url': SILICON_API_BASE_URL
+    },
+    ModelChoice.SILICON_QWEN3_8B: {
+        'model_name': 'openai/Qwen/Qwen3-8B',
+        'api_key': SILICON_API_KEY,
+        'base_url': SILICON_API_BASE_URL
+    },
+    ModelChoice.SILICON_GLM_Z1_32B: {
+        'model_name': 'openai/THUDM/GLM-Z1-32B-0414',
+        'api_key': SILICON_API_KEY,
+        'base_url': SILICON_API_BASE_URL
+    },
 }
 
 # ============sidebar settings=================
