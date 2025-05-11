@@ -256,17 +256,17 @@ Usage:
 Group:
 - Gridded Weather Forecast
 
-## 12. gird_weather_forecast
+## 12. grid_weather_forecast
 Description: 根据经纬度获取 **今天开始未来[3,7]天每日** 天气预报，精确到3-5公里范围，包括温度、湿度、大气压、天气状况、风力、风向等。
 Parameters:
 - latLon: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**）。
 - forecast_days: (optional)(取值枚举：[3,7]) 需要查从**今天开始**未来[3,7]的天气预报,默认值为3
 Usage:
 <action>
-<gird_weather_forecast>
+<grid_weather_forecast>
   <latLon>lon,lat</latLon>
   <forecast_days>[3|7]</forecast_days>
-</gird_weather_forecast>
+</grid_weather_forecast>
 </action>
 Group:
 - Gridded Weather Forecast
