@@ -523,6 +523,7 @@ class ModelChoice(StrEnum):
     SILICON_QWEN3_235B_A22B = 'silicon/qwen3-235b-a22b'
     SILICON_QWEN3_8B = 'silicon/qwen3-8b'
     SILICON_GLM_Z1_32B = 'silicon/glm-z1-32b'
+    SILICON_DEEPSEEK_R1 = 'silicon/deepseek-r1'
     
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "YOUR_DEEPSEEK_API_KEY")
 DEEPSEEK_API_BASE_URL = os.getenv("DEEPSEEK_API_BASE_URL", "YOUR_DEEPSEEK_API_BASE_URL")
@@ -604,6 +605,11 @@ MODEL_CONFIGS = {
     },
     ModelChoice.SILICON_QWEN3_8B: {
         'model_name': 'openai/Qwen/Qwen3-8B',
+        'api_key': SILICON_API_KEY,
+        'base_url': SILICON_API_BASE_URL
+    },
+    ModelChoice.SILICON_DEEPSEEK_R1: {
+        'model_name': 'openai/deepseek-ai/DeepSeek-R1',
         'api_key': SILICON_API_KEY,
         'base_url': SILICON_API_BASE_URL
     },
