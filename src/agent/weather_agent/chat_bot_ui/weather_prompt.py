@@ -197,7 +197,7 @@ Group:
 - City Weather
 
 ## 8. city_weather_daily_forecast
-Description: 每日天气预报，提供从**今天开始**全球城市未来 **[3,7,10,15,30]天** 的天气预报，包括：日出日落、月升月落、最高最低温度、天气白天和夜间状况、风力、风速、风向、相对湿度、大气压强、降水量、露点温度、紫外线强度、能见度等。
+Description: 每日天气预报，提供从**今天开始**全球城市**包含今天**未来 **[3,7,10,15,30]天** 的天气预报，包括：日出日落、月升月落、最高最低温度、天气白天和夜间状况、风力、风速、风向、相对湿度、大气压强、降水量、露点温度、紫外线强度、能见度等。
 Parameters:
 - locationID_or_latLon: (required) 需要查询地区的[LocationID | 英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)]，LocationID可通过属于Group `Geographic Information` 的工具获取。
 - forecast_days: (optional)(取值枚举[3,7,10,15,30]) 从**今天开始**需要预报的天数,默认值为3
@@ -257,7 +257,7 @@ Group:
 - Gridded Weather Forecast
 
 ## 12. grid_weather_forecast
-Description: 根据经纬度获取 **今天开始未来[3,7]天每日** 天气预报，精确到3-5公里范围，包括温度、湿度、大气压、天气状况、风力、风向等。
+Description: 根据经纬度获取 **今天开始包含今天未来[3,7]天每日** 天气预报，精确到3-5公里范围，包括温度、湿度、大气压、天气状况、风力、风向等。
 Parameters:
 - latLon: (required) 需要查询地区的以英文逗号分隔的经度,纬度坐标（十进制，最多支持 **小数点后两位**）。
 - forecast_days: (optional)(取值枚举：[3,7]) 需要查从**今天开始**未来[3,7]的天气预报,默认值为3
@@ -289,7 +289,7 @@ Group:
 ------
 
 ## 14. weather_indices
-Description: 根据[LocationID|经纬度]获取 **今天开始未来[1,3]天** 中国城市天气生活指数预报数据。舒适度指数、洗车指数、穿衣指数、感冒指数、运动指数、旅游指数、紫外线指数、空气污染扩散条件指数、空调开启指数、过敏指数、太阳镜指数、化妆指数、晾晒指数、交通指数、钓鱼指数、防晒指数。
+Description: 根据[LocationID|经纬度]获取 **今天开始包含今天未来[1,3]天** 中国城市天气生活指数预报数据。舒适度指数、洗车指数、穿衣指数、感冒指数、运动指数、旅游指数、紫外线指数、空气污染扩散条件指数、空调开启指数、过敏指数、太阳镜指数、化妆指数、晾晒指数、交通指数、钓鱼指数、防晒指数。
 Parameters:
 - locationID_or_latLon: (required) 需要查询地区的[LocationID | 英文逗号分隔的经度,纬度坐标(十进制，**小数点后两位**)],LocationID可通过属于Group `Geographic Information` 的工具获取。例如 location=101010100 或 location=116.41,39.92,优先使用LocationID
 - forecast_days: (optional)(取值枚举：[1,3]) 需要查从**今天开始**未来[1,3]天的生活指数,默认值为1
@@ -336,7 +336,7 @@ Group:
 - Air Quality
 
 ## 17. air_quality_daily_forecast
-Description: 根据经度和纬度获取今天开始未来5天的每日空气质量（AQI）预报、污染物浓度值和健康建议。
+Description: 根据经度和纬度获取今天开始包含今天未来5天的每日空气质量（AQI）预报、污染物浓度值和健康建议。
 Parameters:
 - latitude: (required) 所需位置的纬度。
 - longitude: (required) 所需位置的经度。
