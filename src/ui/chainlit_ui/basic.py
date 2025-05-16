@@ -5,7 +5,7 @@ from chainlit.input_widget import Select, Switch, Slider
 
 api_key = os.getenv("GEMINI_API_KEY")
 settings = {
-    "model": "gemini/gemini-2.0-flash",
+    "model": "gemini/gemini-1.5-flash",
     "temperature": 0.7,
     'max_retries':3
 }
@@ -19,11 +19,11 @@ async def start_chat():
     cl.user_session.set("settings", settings)
     await cl.ChatSettings(
         [
-          Select(
-                id="model",
-                label="AI Model",
-                values=["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-1.5-flash","gemini-1.5-flash-8b"],
-                initial_index=0,
+            Select(
+                    id="model",
+                    label="AI Model",
+                    values=["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-1.5-flash","gemini-1.5-flash-8b"],
+                    initial_index=0,
             ),
             # Switch(id="Streaming", label="OpenAI - Stream Tokens", initial=True),
             Slider(
@@ -43,20 +43,33 @@ async def setup_agent(settings):
     cl.user_session.set("settings", settings)
     print(settings)
 
-@cl.on_message
-async def on_message(message:cl.Message):
+@cl.step(name='my_tool',type="tool")
+async def tool(input_text:str):
+    # Simulate a running task
+    await cl.sleep(2)
+
+    return f"Response from the tool:{input_text}"
+
+async def call_step(input_text:str):
+    async with cl.Step(name='call_something',type='tool') as step:
+        step.input = input_text
+        
+        step.output = 'output form call_something'
+
+async def get_response(input_text:str):
     message_history = cl.user_session.get("message_history")
-    message_history.append({"role": "user", "content": message.content})
+    message_history.append({"role": "user", "content": input_text})
 
     msg = cl.Message(content="")
     await msg.send() # 先发送一个空消息占位
-
+    
     full_response_content = "" # 用于累积完整的响应文本
 
     try:
         stream = await acompletion(
             messages=message_history,
-            stream=True,
+            api_key=api_key,
+            stream=True, 
             **settings
         )
 
@@ -80,3 +93,10 @@ async def on_message(message:cl.Message):
         message_history.append({"role": "assistant", "content": full_response_content})
     
     cl.user_session.set("message_history", message_history)
+    return full_response_content
+    
+@cl.on_message
+async def on_message(message:cl.Message):
+    result = await get_response(message.content)
+    tool_result = await tool(result)
+    call_result = await call_step(result)
