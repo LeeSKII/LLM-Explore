@@ -1,2 +1,4 @@
 .env
+.chainlit
+chainlit.md
 __pycache__
