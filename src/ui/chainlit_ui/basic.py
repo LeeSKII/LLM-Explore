@@ -46,15 +46,15 @@ async def setup_agent(settings):
 @cl.on_message
 async def on_message(message:cl.Message):
     message_history = cl.user_session.get("message_history")
-    settings = cl.user_session.get("settings")
-
     message_history.append({"role": "user", "content": message.content})
 
     msg = cl.Message(content="")
+    await msg.send() # 先发送一个空消息占位
+
+    full_response_content = "" # 用于累积完整的响应文本
 
     try:
         stream = await acompletion(
-            api_key=api_key,
             messages=message_history,
             stream=True,
             **settings
@@ -62,10 +62,21 @@ async def on_message(message:cl.Message):
 
         async for part in stream:
             if token := part.choices[0].delta.content or "":
+                full_response_content += token
                 await msg.stream_token(token)
-        message_history.append({"role": "assistant", "content": msg.content})
+        
         await msg.update()
     except Exception as e:
-        await msg.stream_token(f"Error: {str(e)}")
-        await msg.update()
-        raise
+        error_message = f"调用 LiteLLM 时出错: {str(e)}"
+        await cl.Message(content=error_message).send()
+        # 如果出错，从历史记录中移除最后一条用户消息，避免污染后续对话
+        if message_history and message_history[-1]["role"] == "user":
+            message_history.pop()
+        cl.user_session.set("message_history", message_history)
+        return
+
+    # 将助手的完整响应添加到历史记录
+    if full_response_content:
+        message_history.append({"role": "assistant", "content": full_response_content})
+    
+    cl.user_session.set("message_history", message_history)
