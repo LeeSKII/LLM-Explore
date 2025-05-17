@@ -8,6 +8,8 @@
     "openrouter",
     "QWEATHER",
     "reinit",
-    "selectbox"
+    "selectbox",
+    "streamlit",
+    "taipy"
   ]
 }
