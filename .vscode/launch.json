@@ -12,6 +12,15 @@
       "args": ["run", ".\\src\\agent\\weather_agent\\chat_bot_ui\\weather_chatbot.py"],
       "console": "integratedTerminal",
       "justMyCode": true
+    },
+    {
+      "name": "Python: Streamlit-json",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "streamlit",
+      "args": ["run", ".\\src\\agent\\weather_agent\\chat_bot_ui\\json-form\\weather_chatbot.py"],
+      "console": "integratedTerminal",
+      "justMyCode": true
     }
   ]
 }
