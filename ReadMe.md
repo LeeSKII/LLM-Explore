@@ -8,6 +8,8 @@
 - [ ] csv\pandas\sql agent
 - [ ] langchain usage
 - [ ] claude prompt
+- [ ] chainlit weather agent, auto inject function description, and use light llm correct unstructured output format
+- [ ] instructor prompt engineering
 
 ## Reflection
 
