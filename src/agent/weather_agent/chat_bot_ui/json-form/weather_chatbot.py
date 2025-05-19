@@ -737,7 +737,7 @@ for i, msg_data in enumerate(st.session_state.messages[-MAX_MESSAGES_DISPLAY:]):
                     step_content = step.get("content", "")
                     st.markdown(f"**{step_title}**")
                     if step_type == "llm_raw_response": st.code(step_content, language='xml')
-                    elif step_type in ["thinking", "info", "error"]: st.markdown(f"```\n{step_content}\n```")
+                    elif step_type in ["thinking", "info", "error"]: st.markdown(f"{step_content}")
                     elif step_type in ["action_parsed", "action_executed"]: st.json(step_content)
                     elif step_type == "tool_result_payload":
                         if isinstance(step_content, list):
