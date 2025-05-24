@@ -1,5 +1,6 @@
 .env
 .chainlit
 .files
+*.log
 chainlit.md
 __pycache__
