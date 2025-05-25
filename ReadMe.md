@@ -4,6 +4,7 @@
 
 ## TODO List
 
+- [ ] web search agent use Tavily API
 - [ ] deer flow deep researcher
 - [ ] gpt deep researcher
 - [ ] skyWork mock agentic seek deep researcher
