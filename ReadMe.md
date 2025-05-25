@@ -4,6 +4,10 @@
 
 ## TODO List
 
+- [ ] deer flow deep researcher
+- [ ] gpt deep researcher
+- [ ] skyWork mock agentic seek deep researcher
+- [ ] langGraph multi agent system
 - [ ] chainlit cook book
 - [ ] csv\pandas\sql agent
 - [ ] langchain usage
