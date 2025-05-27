@@ -8,6 +8,7 @@
 - [ ] deer flow deep researcher
 - [ ] gpt deep researcher
 - [ ] agno python agent framework
+- [ ] sequential thinking https://github.com/FradSer/mcp-server-mas-sequential-thinking/blob/main/main.py
 - [ ] skyWork mock agentic seek deep researcher
 - [ ] langGraph multi agent system
 - [ ] chainlit cook book
