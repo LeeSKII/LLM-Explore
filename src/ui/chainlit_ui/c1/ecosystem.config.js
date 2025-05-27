@@ -2,9 +2,9 @@ module.exports = {
   apps: [
     {
       name: "chainlit-chat-python-app",
-      script: "home.py",
-      interpreter: "python",
-      args: "--port 8000 --headless",
+      script: "chainlit",
+      interpreter: "none",
+      args: "run home.py --host 0.0.0.0 --port 8500 --headless",
       env: {
         ENVIRONMENT: "production",
       },
