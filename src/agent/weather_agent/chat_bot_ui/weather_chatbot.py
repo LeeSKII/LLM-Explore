@@ -508,6 +508,7 @@ MAX_MESSAGES_DISPLAY = 50
 DEFAULT_SYSTEM_PROMPT = weather_system_prompt_cot if 'weather_system_prompt_cot' in globals() else "You are a helpful weather assistant."
 
 class ModelChoice(StrEnum):
+    QWEN_235B_LOCAL = 'Qwen3-235B'
     QWEN_TURBO = 'qwen/qwen-turbo-latest'
     DEEPSEEK = "deepseek/deepseek-chat"
     DEEPSEEK_REASONER = "deepseek/deepseek-reasoner"
@@ -524,6 +525,9 @@ class ModelChoice(StrEnum):
     SILICON_QWEN3_8B = 'silicon/qwen3-8b'
     SILICON_DEEPSEEK_R1 = 'silicon/deepseek-r1'
     
+LOCAL_API_KEY = os.getenv("SELF_HOST_URL", "YOUR_DEEPSEEK_API_KEY")
+LOCAL_API_BASE_URL = os.getenv("SELF_HOST_URL", "YOUR_DEEPSEEK_API_BASE_URL")
+
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "YOUR_DEEPSEEK_API_KEY")
 DEEPSEEK_API_BASE_URL = os.getenv("DEEPSEEK_API_BASE_URL", "YOUR_DEEPSEEK_API_BASE_URL")
 
@@ -537,6 +541,11 @@ SILICON_API_KEY = os.getenv("SILICON_API_KEY", "YOUR_SILICON_API_KEY")
 SILICON_API_BASE_URL = os.getenv("SILICON_API_BASE_URL", "YOUR_SILICON_API_BASE_URL")
 
 MODEL_CONFIGS = {
+    ModelChoice.QWEN_235B_LOCAL: {
+        'model_name': 'hosted_vllm/Qwen3-235B',
+        'api_key': LOCAL_API_KEY, 
+        'base_url': LOCAL_API_BASE_URL
+    },
     ModelChoice.DEEPSEEK: {
         'model_name': 'deepseek/deepseek-chat',
         'api_key': DEEPSEEK_API_KEY, 
