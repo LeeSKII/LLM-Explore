@@ -7,6 +7,7 @@
 - [ ] web search agent use Tavily API
 - [ ] deer flow deep researcher
 - [ ] gpt deep researcher
+- [ ] agno python agent framework
 - [ ] skyWork mock agentic seek deep researcher
 - [ ] langGraph multi agent system
 - [ ] chainlit cook book
