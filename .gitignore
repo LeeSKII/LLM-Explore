@@ -2,5 +2,6 @@
 .chainlit
 .files
 *.log
+tmp
 chainlit.md
 __pycache__
