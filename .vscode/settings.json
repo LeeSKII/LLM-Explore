@@ -7,6 +7,7 @@
     "chainlit",
     "duckduckgo",
     "iterchildren",
+    "lancedb",
     "litellm",
     "openrouter",
     "QWEATHER",
