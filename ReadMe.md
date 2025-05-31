@@ -5,13 +5,14 @@
 ## TODO List
 
 - [ ] agno agent framework usage
-  - [ ] Agent Class - agent->agno-usage->concept->agent.ipynb
-  - [ ] agno agent framework usage
+  - [x] Agent Class - agent->agno-usage->concept->agent.ipynb
+  - [ ] Five level agent
+    - [ ] Agent framework usage
 - [ ] web search agent use Tavily API
 - [ ] deer flow deep researcher
 - [ ] gpt deep researcher
 - [ ] agno python agent framework
-- [ ] sequential thinking https://github.com/FradSer/mcp-server-mas-sequential-thinking/blob/main/main.py
+- [ ] sequential thinking [GitHub repository](https://github.com/FradSer/mcp-server-mas-sequential-thinking/blob/main/main.py)
 - [ ] skyWork mock agentic seek deep researcher
 - [ ] langGraph multi agent system
 - [ ] chainlit cook book
