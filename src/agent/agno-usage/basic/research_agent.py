@@ -28,7 +28,7 @@ qwen_settings = {
   'id' : model_name
 }
 
-settings = local_settings
+settings = qwen_settings
 
 today = datetime.now().strftime("%Y-%m-%d")
 
@@ -99,7 +99,7 @@ agent = Agent(
 if __name__ == "__main__":
     # Generate a research report on a cutting-edge topic
     agent.print_response(
-        "Research the latest developments in brain-computer interfaces", stream=True
+        "请分析2025年中国的钢铁冶金建设市场", stream=True
     )
 
 # More example prompts to try:

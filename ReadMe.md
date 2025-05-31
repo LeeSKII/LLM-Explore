@@ -4,6 +4,9 @@
 
 ## TODO List
 
+- [ ] agno agent framework usage
+  - [ ] Agent Class - agent->agno-usage->concept->agent.ipynb
+  - [ ] agno agent framework usage
 - [ ] web search agent use Tavily API
 - [ ] deer flow deep researcher
 - [ ] gpt deep researcher

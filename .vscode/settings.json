@@ -9,6 +9,7 @@
     "chainlit",
     "duckduckgo",
     "embedder",
+    "ipynb",
     "iterchildren",
     "lancedb",
     "litellm",
