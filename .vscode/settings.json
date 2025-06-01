@@ -9,6 +9,8 @@
     "chainlit",
     "duckduckgo",
     "embedder",
+    "financials",
+    "FINNHUB",
     "ipynb",
     "iterchildren",
     "lancedb",
