@@ -2,6 +2,7 @@ from textwrap import dedent
 from agno.agent import Agent
 from agno.models.openai.like import OpenAILike
 from agno.tools.reasoning import ReasoningTools
+from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools import tool
 import finnhub
 import logging
@@ -245,7 +246,7 @@ tools = [get_stock_symbol, get_company_profile,get_market_news, get_company_news
 agent = Agent(
     model=OpenAILike(**settings),
     # tools=[ReasoningTools(add_instructions=True,add_few_shot=True),get_stock_symbol],
-    tools=tools+[ReasoningTools(add_instructions=True,add_few_shot=True)],
+    tools=tools+[ReasoningTools(add_instructions=True,add_few_shot=True)]+[DuckDuckGoTools()],
     show_tool_calls=True,
     description=dedent("""\
         You are Professor X-1000, a distinguished AI research scientist with expertise
@@ -305,4 +306,4 @@ agent = Agent(
     debug_mode=True,
     telemetry=False
 )
-agent.print_response("人工智能行业有哪些值得关注的股票", markdown=True)
+agent.print_response("Anthropic公司前景如何,有发行股票吗", markdown=True)
