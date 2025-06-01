@@ -5,9 +5,11 @@
 ## TODO List
 
 - [ ] agno agent framework usage
-  - [x] Agent Class - agent->agno-usage->concept->agent.ipynb
-  - [ ] Five level agent
-    - [ ] Agent framework usage
+  - [x] Agent Class - agent->agno-usage->concept->agent->agent.ipynb
+  - [ ] Five levels of agentic systems
+    - [ ] Agents with tools and instructions - agent->agno-usage->five-level->1_tools_instructions.ipynb
+      - [ ] Writing your own tools
+      - [ ] Reasoning tool
 - [ ] web search agent use Tavily API
 - [ ] deer flow deep researcher
 - [ ] gpt deep researcher
