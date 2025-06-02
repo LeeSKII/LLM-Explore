@@ -4,6 +4,7 @@ from agno.models.openai.like import OpenAILike
 from agno.tools.reasoning import ReasoningTools
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools import tool
+from agno.playground import Playground, serve_playground_app
 import finnhub
 import logging
 
@@ -12,6 +13,7 @@ import logging
 #------------------ settings ------------------
 import os
 from dotenv import load_dotenv
+from matplotlib.pyplot import show
 from sqlalchemy import desc
 load_dotenv()
 api_key=os.getenv("QWEN_API_KEY")
@@ -72,7 +74,7 @@ def get_company_profile(symbol:str):
     '''
     return finnhub_client.company_profile2(symbol=symbol)
 
-@tool()
+@tool(show_result=False)
 def get_market_news():
     '''
     Get latest market news.
@@ -244,6 +246,7 @@ def get_quote(symbol:str):
 tools = [get_stock_symbol, get_company_profile,get_market_news, get_company_news, get_company_peers, get_company_financials, get_stock_insider_transactions, get_stock_insider_sentiment, get_financials_reported, get_recommendation_trends, get_company_earnings_surprises, get_quote]
 
 agent = Agent(
+    name='stock-agent',
     model=OpenAILike(**settings),
     # tools=[ReasoningTools(add_instructions=True,add_few_shot=True),get_stock_symbol],
     tools=tools+[ReasoningTools(add_instructions=True,add_few_shot=True)]+[DuckDuckGoTools()],
@@ -304,6 +307,11 @@ agent = Agent(
     Date: {current_date}\
     """),
     debug_mode=True,
-    telemetry=False
+    telemetry=True
 )
-agent.print_response("Anthropic公司前景如何,有发行股票吗", markdown=True)
+# agent.print_response("Anthropic公司前景如何,有发行股票吗", markdown=True)
+
+app = Playground(agents=[agent]).get_app()
+
+if __name__ == "__main__":
+    serve_playground_app("stock-tools-agent:app", reload=True)
