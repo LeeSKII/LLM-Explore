@@ -9,7 +9,7 @@
   - [ ] Five levels of agentic systems
     - [ ] Agents with tools and instructions - agent->agno-usage->five-level->1_tools_instructions.ipynb
       - [ ] Writing your own tools
-      - [ ] Reasoning tool
+    - [ ] Reasoning tool
 - [ ] web search agent use Tavily API
 - [ ] deer flow deep researcher
 - [ ] gpt deep researcher
