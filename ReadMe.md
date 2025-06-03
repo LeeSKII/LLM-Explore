@@ -7,9 +7,22 @@
 - [ ] agno agent framework usage
   - [x] Agent Class - agent->agno-usage->concept->agent->agent.ipynb
   - [ ] Five levels of agentic systems
-    - [ ] Agents with tools and instructions - agent->agno-usage->five-level->1_tools_instructions.ipynb
-      - [ ] Writing your own tools
-    - [ ] Reasoning tool
+    - [x] Level 1: Agents with tools and instructions - agent->agno-usage->five-level->1_tools_instructions.ipynb
+      - [x] Writing your own tools
+        - [x] Stock agent
+      - [ ] Exceptions
+      - [ ] Hooks
+      - [ ] Human in the loop
+      - [ ] Tool kits
+      - [ ] MCP
+      - [ ] Writing your own toolkit
+      - [ ] Selecting tools
+      - [ ] Async tools
+      - [ ] Tool Result Caching
+    - [ ] Level 2: Agents with knowledge and storage
+    - [ ] Level 3: Agents with memory and reasoning
+    - [ ] Level 4: Teams of Agents with collaboration and coordination
+    - [ ] Level 5: Multi-Agent Workflows with state and determinism
 - [ ] web search agent use Tavily API
 - [ ] deer flow deep researcher
 - [ ] gpt deep researcher
