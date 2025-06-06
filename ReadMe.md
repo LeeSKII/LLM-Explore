@@ -2,6 +2,16 @@
 
 测试各种 LLM 模型的集合之地，探索各种工程化的可能性。
 
+## Project Start
+
+Use uv for package management
+
+推荐创建虚拟环境 venv
+
+`uv venv --python 3.12`
+
+安装包 package install: `uv sync`
+
 ## TODO List
 
 - [ ] agno agent framework usage
