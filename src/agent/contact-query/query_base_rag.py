@@ -5,6 +5,7 @@ from agno.vectordb.search import SearchType
 from agno.embedder.openai import OpenAIEmbedder
 from agno.tools.reasoning import ReasoningTools
 from agno.knowledge import AgentKnowledge
+from agno.playground import Playground, serve_playground_app
 
 #------------------ settings ------------------
 import os
@@ -40,7 +41,7 @@ settings = qwen_settings
 
 vector_db = LanceDb(
     table_name="contact_table",
-    uri="E:\\PythonProject\\LLM-Explore\\src\\agent\\contact-query\\tmp\\contact_vectors.lancedb",
+    uri="D:\\projects\\LLM-Explore\\src\\agent\\contact-query\\tmp\\contact_vectors.lancedb",
     search_type=SearchType.hybrid,
     embedder=OpenAIEmbedder(id=embedding_model_id,api_key=api_key,base_url=base_url, dimensions=2048),
 )
@@ -66,4 +67,9 @@ agent = Agent(
     debug_mode=True,
 )
 
-agent.print_response(message='包钢余热锅炉和宝钢余热锅炉价格相差多少？')
+# agent.print_response(message='包头钢铁烧结机余热项目和宝钢德盛烧结余热项目的余热锅炉价格相差多少')
+
+app = Playground(agents=[agent]).get_app()
+
+if __name__ == "__main__":
+    serve_playground_app("query_base_rag:app", reload=True)

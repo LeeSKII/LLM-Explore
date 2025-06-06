@@ -1,0 +1,18 @@
+[project]
+name = "llm-explore"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+  "agno",
+  "openai",
+  "lancedb",
+  "mammoth",
+  "cohere",
+  "infinity_client",
+  "ipykernel",
+  "tantivy",
+  "pandas",
+  "pylance",
+  "fastapi",
+  "uvicorn",
+]
