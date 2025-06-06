@@ -15,7 +15,7 @@ base_url=os.getenv("QWEN_API_BASE_URL")
 local_base_url = 'http://192.168.0.166:8000/v1'
 local_model_name = 'Qwen3-235B'
 model_name = 'qwen-plus-latest'
-embedding_model_id = 'text-embedding-v3'
+embedding_model_id = 'text-embedding-v4'
 
 local_settings = {
   'api_key' : '123',
@@ -42,11 +42,13 @@ vector_db = LanceDb(
     table_name="contact_table",
     uri="E:\\PythonProject\\LLM-Explore\\src\\agent\\contact-query\\tmp\\contact_vectors.lancedb",
     search_type=SearchType.hybrid,
-    embedder=OpenAIEmbedder(id=embedding_model_id,api_key=api_key,base_url=base_url, dimensions=1024),
+    embedder=OpenAIEmbedder(id=embedding_model_id,api_key=api_key,base_url=base_url, dimensions=2048),
 )
 
 
 knowledge_base = AgentKnowledge(vector_db=vector_db)
+
+# add_references=True 就是传统rag的做法，会将找到的相关文档都放在用户的context中，而现代的做法会通过search_knowledge_base进行工具查询然后得到相关结果，建议先不使用add_references=True，如果性能有问题再进行相关测试进行评估
 
 agent = Agent(
     model=OpenAILike(**settings),
@@ -57,7 +59,7 @@ agent = Agent(
     num_history_responses=20,
     tools=[ReasoningTools(add_instructions=True)],
     markdown=True,
-    add_references=True,
+    # add_references=True,
     stream=True,
     stream_intermediate_steps=True,
     telemetry=False,
