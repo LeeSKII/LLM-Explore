@@ -72,11 +72,13 @@ async def on_message(msg: cl.Message):
     message = cl.Message(content="")
     user_query = msg.content
     agent:Agent = cl.user_session.get("agent")
-
+    run_start_step = None
     # # Streaming the final answer 可以生效
     for response in await cl.make_async(agent.run)(user_query, stream=True):
-        if response.event != RunEvent.run_response:
-            print(response.event,"----",response)
+        # if response.event != RunEvent.run_response:
+        #     print(response.event,"----",response)
+        if response.event != RunEvent.run_response and run_start_step:
+            await run_start_step.remove()
         if response.event == RunEvent.run_response:
             await message.stream_token(response.content)
         elif response.event == RunEvent.tool_call_started:
@@ -86,13 +88,18 @@ async def on_message(msg: cl.Message):
                   tool_call_step.input = f"Tool Args: {tool_args_str}"
                   # await tool_call_step.stream_token(tool_args_str)                      
         elif response.event == RunEvent.reasoning_step:
-            async with cl.Step(name=response.event+f":{response.content.title}",default_open=False) as reasoning_step:
-                await reasoning_step.stream_token(response.reasoning_content)
+            # name = response.event+f":{response.content.title}" # 使用动态name会有繁忙图标问题
+            async with cl.Step(name='reasoning',default_open=False) as reasoning_step:
+                # reasoning_step.output = response.reasoning_content
+                reasoning_step.input = json.dumps({"title":response.content.title,"action":response.content.action}, indent=2, ensure_ascii=False)
+                reasoning_step.output = response.reasoning_content
+                # await reasoning_step.stream_token(response.reasoning_content)
+                # await reasoning_step.update()
         elif response.event == RunEvent.run_started:
-            async with cl.Step(name="Agent 开始执行...") as run_start:
+            async with cl.Step(name="Agent 开始执行...") as run_start_step:
                 pass
         else:
-            await run_start.remove()
+            pass
             
     await message.send()
 
