@@ -42,23 +42,13 @@ deepseek_settings = {
 
 settings = deepseek_settings
 
-# Available commands in the UI
-COMMANDS = [
-    {
-        "id": "Reasoning",
-        "icon": "sparkle",
-        "description": "Reasoning deep",
-        "button": True,
-        "persistent": True
-    },
-]
+knowledge_vector_db_uri = "D:\\projects\\LLM-Explore\\src\\agent\\contact-query\\tmp\\contact_vectors.lancedb"
 
 @cl.on_chat_start
 async def init_agent():
-    await cl.context.emitter.set_commands(COMMANDS)
     vector_db = LanceDb(
       table_name="contact_table",
-      uri="D:\\projects\\LLM-Explore\\src\\agent\\contact-query\\tmp\\contact_vectors.lancedb",
+      uri=knowledge_vector_db_uri,
       search_type=SearchType.hybrid,
       embedder=OpenAIEmbedder(id=embedding_model_id,api_key=api_key,base_url=base_url, dimensions=2048),
     )
@@ -66,7 +56,7 @@ async def init_agent():
     agent = Agent(
       model=OpenAILike(**settings),
       name='Contact_Query_Agent',
-      instructions=['查询合同详情的时候请列出所有数据，严禁遗漏任何条目','禁止虚构和假设任何数据','如果需要进行合同比对的时候，请按需**分别**查出所有项目后再进行比对','必须使用简体中文回复'],
+      instructions=['禁止虚构和假设任何数据','只简洁回复必要的信息','必须使用简体中文回复'],
       knowledge=knowledge_base,
       add_history_to_messages=True,
       num_history_responses=20,
@@ -76,36 +66,13 @@ async def init_agent():
       stream_intermediate_steps=True,
       telemetry=False,
       debug_mode=False,
-    )
-    
-    agent_reasoning = Agent(
-      model=OpenAILike(**settings),
-      name='Contact_Query_Agent',
-      instructions=['查询合同详情的时候请列出所有数据，严禁遗漏任何条目','禁止虚构和假设任何数据','如果需要进行合同比对的时候，请按需**分别**查出所有项目后再进行比对','必须使用简体中文回复'],
-      knowledge=knowledge_base,
-      add_history_to_messages=True,
-      num_history_responses=20,
-      tools=[ReasoningTools(add_instructions=True)],
-      markdown=True,
-      # add_references=True,
-      stream=True,
-      stream_intermediate_steps=True,
-      telemetry=False,
-      debug_mode=False,
-    )
+    ) 
 
     cl.user_session.set("agent", agent)
-    cl.user_session.set("agent_reasoning", agent_reasoning)
 
 @cl.on_message
 async def on_message(msg: cl.Message):
-    # Process message with or without explicit search command
-    if msg.command == "Reasoning":
-        agent:Agent = cl.user_session.get("agent_reasoning")
-    else:
-        agent:Agent = cl.user_session.get("agent")
-    
-    # agent:Agent = cl.user_session.get("agent")
+    agent:Agent = cl.user_session.get("agent")
     
     message = cl.Message(content="")
     user_query = msg.content 
@@ -134,7 +101,7 @@ async def on_message(msg: cl.Message):
                 # await reasoning_step.stream_token(response.reasoning_content)
                 # await reasoning_step.update()
         elif response.event == RunEvent.run_started:
-            async with cl.Step(name="合同查询 Agent 开始执行...") as run_start_step:
+            async with cl.Step(name="Running...") as run_start_step:
                 pass
         else:
             pass
