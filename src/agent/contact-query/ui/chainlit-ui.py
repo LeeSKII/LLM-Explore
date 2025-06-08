@@ -1,3 +1,4 @@
+from calendar import c
 import os
 from agno.agent import Agent,AgentKnowledge,RunResponse,RunEvent
 from agno.models.openai.like import OpenAILike
@@ -42,8 +43,20 @@ deepseek_settings = {
 
 settings = deepseek_settings
 
+# Available commands in the UI
+COMMANDS = [
+    {
+        "id": "Reasoning",
+        "icon": "sparkle",
+        "description": "Reasoning deep",
+        "button": True,
+        "persistent": True
+    },
+]
+
 @cl.on_chat_start
-def init_agent():
+async def init_agent():
+    await cl.context.emitter.set_commands(COMMANDS)
     vector_db = LanceDb(
       table_name="contact_table",
       uri="D:\\projects\\LLM-Explore\\src\\agent\\contact-query\\tmp\\contact_vectors.lancedb",
@@ -52,6 +65,21 @@ def init_agent():
     )
     knowledge_base = AgentKnowledge(vector_db=vector_db)
     agent = Agent(
+      model=OpenAILike(**settings),
+      name='Contact_Query_Agent',
+      instructions=['查询合同详情的时候请列出所有数据，严禁遗漏任何条目','禁止虚构和假设任何数据','如果需要进行合同比对的时候，请按需**分别**查出所有项目后再进行比对','必须使用简体中文回复'],
+      knowledge=knowledge_base,
+      add_history_to_messages=True,
+      num_history_responses=20,
+      markdown=True,
+      # add_references=True,
+      stream=True,
+      stream_intermediate_steps=True,
+      telemetry=False,
+      debug_mode=False,
+    )
+    
+    agent_reasoning = Agent(
       model=OpenAILike(**settings),
       name='Contact_Query_Agent',
       instructions=['查询合同详情的时候请列出所有数据，严禁遗漏任何条目','禁止虚构和假设任何数据','如果需要进行合同比对的时候，请按需**分别**查出所有项目后再进行比对','必须使用简体中文回复'],
@@ -68,12 +96,20 @@ def init_agent():
     )
 
     cl.user_session.set("agent", agent)
+    cl.user_session.set("agent_reasoning", agent_reasoning)
 
 @cl.on_message
 async def on_message(msg: cl.Message):
+    # Process message with or without explicit search command
+    if msg.command == "Reasoning":
+        agent:Agent = cl.user_session.get("agent_reasoning")
+    else:
+        agent:Agent = cl.user_session.get("agent")
+    
+    # agent:Agent = cl.user_session.get("agent")
+    
     message = cl.Message(content="")
-    user_query = msg.content
-    agent:Agent = cl.user_session.get("agent")
+    user_query = msg.content 
     run_start_step = None
 
     for response in await cl.make_async(agent.run)(user_query, stream=True):
