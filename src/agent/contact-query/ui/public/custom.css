@@ -1,0 +1,4 @@
+.watermark {
+  display: none !important;
+  visibility: hidden !important; /* 为了更强的覆盖性 */
+}

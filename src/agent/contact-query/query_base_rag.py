@@ -36,7 +36,7 @@ deepseek_settings = {
   'id' : 'deepseek-chat'
 }
 
-settings = qwen_settings
+settings = deepseek_settings
 #------------------ settings ------------------
 
 vector_db = LanceDb(
@@ -58,18 +58,21 @@ agent = Agent(
     knowledge=knowledge_base,
     add_history_to_messages=True,
     num_history_responses=20,
-    tools=[ReasoningTools(add_instructions=True)],
+    # tools=[ReasoningTools(add_instructions=True)],
     markdown=True,
     # add_references=True,
-    stream=True,
+    # stream=True,
     stream_intermediate_steps=True,
     telemetry=False,
-    debug_mode=True,
+    debug_mode=False,
 )
 
 # agent.print_response(message='包头钢铁烧结机余热项目和宝钢德盛烧结余热项目的余热锅炉价格相差多少')
 
-app = Playground(agents=[agent]).get_app()
+response = agent.run(message='包头钢铁烧结机余热项目和宝钢德盛烧结余热项目的余热锅炉价格相差多少')
+print(response)
 
-if __name__ == "__main__":
-    serve_playground_app("query_base_rag:app", reload=True)
+# app = Playground(agents=[agent]).get_app()
+
+# if __name__ == "__main__":
+#     serve_playground_app("query_base_rag:app", reload=True)

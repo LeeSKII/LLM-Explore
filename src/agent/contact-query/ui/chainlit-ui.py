@@ -12,7 +12,6 @@ from agno.tools.reasoning import ReasoningTools
 from pathlib import Path
 import json
 
-from traitlets import default
 
 load_dotenv()
 
@@ -35,9 +34,13 @@ qwen_settings = {
   'id' : model_name
 }
 
-settings = qwen_settings
+deepseek_settings = {
+    'api_key' : os.getenv("DEEPSEEK_API_KEY"),
+    'base_url' : os.getenv("DEEPSEEK_API_BASE_URL"),
+    'id' : 'deepseek-chat'
+}
 
-
+settings = deepseek_settings
 
 @cl.on_chat_start
 def init_agent():
@@ -63,8 +66,7 @@ def init_agent():
       telemetry=False,
       debug_mode=False,
     )
-    # asyncio.run(knowledge_base.aload(recreate=False))
-    # knowledge_base.load(recreate=False)
+
     cl.user_session.set("agent", agent)
 
 @cl.on_message
@@ -73,7 +75,7 @@ async def on_message(msg: cl.Message):
     user_query = msg.content
     agent:Agent = cl.user_session.get("agent")
     run_start_step = None
-    # # Streaming the final answer 可以生效
+
     for response in await cl.make_async(agent.run)(user_query, stream=True):
         # if response.event != RunEvent.run_response:
         #     print(response.event,"----",response)
@@ -83,10 +85,11 @@ async def on_message(msg: cl.Message):
             await message.stream_token(response.content)
         elif response.event == RunEvent.tool_call_started:
             for tool in response.tools:
-              async with cl.Step(name=tool.tool_name) as tool_call_step:
+              # 通过id屏蔽重复项的出现
+              async with cl.Step(name=tool.tool_name,id=tool.tool_call_id) as tool_call_step:
                   tool_args_str = json.dumps(tool.tool_args, indent=2, ensure_ascii=False)
                   tool_call_step.input = f"Tool Args: {tool_args_str}"
-                  # await tool_call_step.stream_token(tool_args_str)                      
+                      
         elif response.event == RunEvent.reasoning_step:
             # name = response.event+f":{response.content.title}" # 使用动态name会有繁忙图标问题
             async with cl.Step(name='reasoning',default_open=False) as reasoning_step:
@@ -96,7 +99,7 @@ async def on_message(msg: cl.Message):
                 # await reasoning_step.stream_token(response.reasoning_content)
                 # await reasoning_step.update()
         elif response.event == RunEvent.run_started:
-            async with cl.Step(name="Agent 开始执行...") as run_start_step:
+            async with cl.Step(name="合同查询 Agent 开始执行...") as run_start_step:
                 pass
         else:
             pass
