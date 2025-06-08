@@ -15,4 +15,5 @@ dependencies = [
   "pylance",
   "fastapi",
   "uvicorn",
+  "chainlit>=2.5.5",
 ]
