@@ -21,16 +21,22 @@ embedding_model_id = 'text-embedding-v4'
 
 vector_db = LanceDb(
     table_name="contact_table",
-    uri="D:\\projects\\LLM-Explore\\src\\agent\\contact-query\\tmp\\contact_vectors.lancedb",
+    uri="C:\\Lee\\work\\contract\\db\\tmp\\contact_vectors.lancedb",
     search_type=SearchType.hybrid,
     embedder=OpenAIEmbedder(id=embedding_model_id,api_key=api_key,base_url=base_url, dimensions=2048),
 )
 
 documents = []
 
-for file in Path("D:\work\others\docx_files").glob("*.docx"):
+style_map = """
+p =>
+b =>
+i =>
+"""
+
+for file in Path("C:\Lee\work\contract\精简\锅炉合同").glob("*.docx"):
     print(file)
-    result = mammoth.convert_to_html(file)
+    result = mammoth.convert_to_html(file,style_map=style_map,include_default_style_map=False)
     doc_content = result.value
     doc = Document(content=doc_content)
     documents.append(doc)
