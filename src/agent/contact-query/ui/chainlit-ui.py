@@ -20,7 +20,7 @@ base_url=os.getenv("QWEN_API_BASE_URL")
 local_base_url = 'http://192.168.0.166:8000/v1'
 local_model_name = 'Qwen3-235B'
 model_name = 'qwen-plus-latest'
-embedding_model_id = 'text-embedding-v3'
+embedding_model_id = 'text-embedding-v4'
 
 local_settings = {
   'api_key' : '123',
@@ -53,6 +53,16 @@ COMMANDS = [
     },
 ]
 
+instructions = [
+                '需要在相关匹配用户的查询需求和提供的背景知识，例如项目名称，名称，供应商名称等，严禁使用非用户指定的查询内容作为回答，例如：用户指定查询A项目，但是返回了B项目的信息，这将严重违背用户的查询意愿。',
+                '只返回用户关心的合同数据，严谨返回其它不相关合同',
+                '如果提供的背景知识没有用户需要查询的信息，请告知用户没有在知识库搜索到相关数据',
+                '查询合同详情的时候请列出所有数据，严禁遗漏任何条目',
+                '禁止虚构和假设任何数据',
+                '如果需要进行合同比对的时候，请按需**分别**查出所有项目后再进行比对',
+                '必须使用简体中文回复',
+                ]
+
 @cl.on_chat_start
 async def init_agent():
     await cl.context.emitter.set_commands(COMMANDS)
@@ -62,11 +72,11 @@ async def init_agent():
       search_type=SearchType.hybrid,
       embedder=OpenAIEmbedder(id=embedding_model_id,api_key=api_key,base_url=base_url, dimensions=2048),
     )
-    knowledge_base = AgentKnowledge(vector_db=vector_db,num_documents=10)
+    knowledge_base = AgentKnowledge(vector_db=vector_db,num_documents=5)
     agent = Agent(
       model=OpenAILike(**settings),
       name='Contact_Query_Agent',
-      instructions=['查询合同详情的时候请列出所有数据，严禁遗漏任何条目','禁止虚构和假设任何数据','如果需要进行合同比对的时候，请按需**分别**查出所有项目后再进行比对','必须使用简体中文回复'],
+      instructions=instructions,
       knowledge=knowledge_base,
       add_history_to_messages=True,
       num_history_responses=20,
@@ -76,13 +86,13 @@ async def init_agent():
       stream=True,
       stream_intermediate_steps=True,
       telemetry=False,
-      debug_mode=False,
+      debug_mode=True,
     )
     
     agent_reasoning = Agent(
       model=OpenAILike(**settings),
       name='Contact_Query_Agent',
-      instructions=['查询合同详情的时候请列出所有包含价格的设备数据，严禁遗漏任何条目','禁止虚构和假设任何数据','如果需要进行合同比对的时候，请按需**分别**查出所有项目后再进行比对','必须使用简体中文回复'],
+      instructions=instructions,
       knowledge=knowledge_base,
       add_history_to_messages=True,
       num_history_responses=20,
