@@ -34,7 +34,7 @@ b =>
 i =>
 """
 
-for file in Path("C:\Lee\work\contract\精简\锅炉合同").glob("*.docx"):
+for file in Path(r"C:\Lee\work\contract\精简\锅炉合同").glob("*.docx"):
     print(file)
     # result = mammoth.convert_to_html(file,style_map=style_map,include_default_style_map=False)
     result = mammoth.convert_to_markdown(file)
@@ -49,5 +49,5 @@ knowledge_base = DocumentKnowledgeBase(
     chunking_strategy=FixedSizeChunking(chunk_size=8192),
 )
 
-knowledge_base.load(recreate=True)
+knowledge_base.load(recreate=False)
 
