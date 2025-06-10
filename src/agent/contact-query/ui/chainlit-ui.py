@@ -71,9 +71,8 @@ async def set_starters():
             message="山东永锋余热发电和河北东海特钢项目余热锅炉价格对比。",
             icon="/public/idea.svg",
             ),
-
         cl.Starter(
-            label="余热锅炉价格对比",
+            label="多项目余热锅炉价格对比",
             message="湖南华菱涟钢炼项目和揭阳大南海石化工业区危险废物焚烧以及宝山钢铁四烧结余热锅炉价格对比。",
             icon="/public/learn.svg",
             ),
