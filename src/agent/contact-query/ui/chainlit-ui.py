@@ -63,6 +63,32 @@ instructions = [
                 '必须使用简体中文回复',
                 ]
 
+@cl.set_starters
+async def set_starters():
+    return [
+        cl.Starter(
+            label="双项目设备价格对比",
+            message="山东永锋余热发电和河北东海特钢项目余热锅炉价格对比。",
+            icon="/public/idea.svg",
+            ),
+
+        cl.Starter(
+            label="余热锅炉价格对比",
+            message="湖南华菱涟钢炼项目和揭阳大南海石化工业区危险废物焚烧以及宝山钢铁四烧结余热锅炉价格对比。",
+            icon="/public/learn.svg",
+            ),
+        cl.Starter(
+            label="多项目联合查询合同信息",
+            message="山东永锋余热发电、河北东海特钢项目、包钢炼铁厂烧结三个项目余热锅炉价格对比。",
+            icon="/public/terminal.svg",
+            ),
+        cl.Starter(
+            label="单项目查询合同信息",
+            message="华菱涟钢余热发电项目合同数据。",
+            icon="/public/write.svg",
+            )
+        ]
+
 @cl.on_chat_start
 async def init_agent():
     await cl.context.emitter.set_commands(COMMANDS)
