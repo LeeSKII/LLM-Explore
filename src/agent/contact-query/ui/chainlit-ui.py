@@ -40,7 +40,7 @@ deepseek_settings = {
     'id' : 'deepseek-chat'
 }
 
-settings = deepseek_settings
+settings = qwen_settings
 
 # Available commands in the UI
 COMMANDS = [
@@ -67,8 +67,8 @@ instructions = [
 async def set_starters():
     return [
         cl.Starter(
-            label="双项目设备价格对比",
-            message="山东永锋余热发电和河北东海特钢项目余热锅炉价格对比。",
+            label="项目设备和供应商信息查询",
+            message="武钢二三烧合同项目设备和供应商信息。",
             icon="/public/idea.svg",
             ),
         cl.Starter(
@@ -77,7 +77,7 @@ async def set_starters():
             icon="/public/learn.svg",
             ),
         cl.Starter(
-            label="多项目联合查询合同信息",
+            label="联合查询合同信息",
             message="山东永锋余热发电、河北东海特钢项目、包钢炼铁厂烧结三个项目余热锅炉价格对比。",
             icon="/public/terminal.svg",
             ),
