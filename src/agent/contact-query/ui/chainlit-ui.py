@@ -85,6 +85,11 @@ async def set_starters():
             label="单项目查询合同信息",
             message="华菱涟钢余热发电项目合同数据。",
             icon="/public/write.svg",
+            ),
+        cl.Starter(
+            label="其它设备的合同信息",
+            message="涉及增加风机设备的合同有哪些。",
+            icon="/public/write.svg",
             )
         ]
 
