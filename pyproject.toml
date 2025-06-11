@@ -16,4 +16,5 @@ dependencies = [
   "fastapi",
   "uvicorn",
   "chainlit>=2.5.5",
+  "dashscope>=1.23.4",
 ]
