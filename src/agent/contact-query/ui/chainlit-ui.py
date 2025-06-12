@@ -151,7 +151,7 @@ async def set_starters():
             ),
         cl.Starter(
             label="其它设备的合同信息",
-            message="涉及增压风机设备的合同有哪些。",
+            message="增压风机的合同有哪些。",
             icon="/public/write.svg",
             )
         ]
@@ -176,7 +176,7 @@ async def init_agent():
       stream=True,
       stream_intermediate_steps=True,
       telemetry=False,
-      debug_mode=True,
+      debug_mode=False,
     )
     
     agent_reasoning = Agent(
