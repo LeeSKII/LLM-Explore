@@ -47,6 +47,8 @@ class ContractMeta(BaseModel):
     # contact_type: str = Field(..., description="合同类型")
     project_name: str = Field(..., description="项目名称")
     subitem_name: str = Field(..., description="子项名称")
+    total_price: str = Field(..., description="合同金额")
+    date: str = Field(..., description="合同签订日期")
     # buyer: str = Field(..., description="买方名称")
     supplier: str = Field(..., description="卖方名称")
     main_equipments: List[str] = Field(..., description="主要设备")
@@ -148,5 +150,5 @@ def extract_contact_meta_data_from_file(file_path)->Tuple[str,str,ContractMeta]:
 
 
 if __name__ == '__main__':
-    contact_path = r"C:\Lee\work\contract\精简\test\02 冷却塔订货合同.docx"
+    contact_path = r"C:\Lee\work\contract\精简\test\09 补偿器采购合同.docx"
     extract_doc,meta_data_str,meta_contract = extract_contact_meta_data_from_file(contact_path)
