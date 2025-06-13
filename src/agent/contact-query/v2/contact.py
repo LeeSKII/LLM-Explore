@@ -1,4 +1,4 @@
-import re
+import csv
 from agno.agent import Agent
 from agno.models.openai import OpenAILike
 import mammoth
@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 from typing import List, Tuple
 import logging
 import pandas as pd
+from openai import OpenAI
+import json
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s:%(filename)s:%(lineno)d - %(message)s',datefmt='%Y-%m-%d %H:%M:%S',level=logging.INFO) 
 
@@ -51,12 +53,13 @@ class ContractMeta(BaseModel):
     total_price_str: str = Field(..., description="合同金文本")
     total_price: float = Field(..., description="合同金额")
     date: str = Field(..., description="合同签订日期")
+    year: int = Field(..., description="合同签订年份")
     # buyer: str = Field(..., description="买方名称")
     supplier: str = Field(..., description="卖方名称")
     main_equipments: List[str] = Field(..., description="主要设备")
     sub_equipments: List[str] = Field(..., description="分项设备")
 
-def exact_docx_text(docx_path):
+def exact_docx_text(docx_path)->str:
     style_map = dedent("""\
       p =>
       b =>
@@ -105,10 +108,12 @@ def extract_contact_info(content):
 
 # 转换函数
 def dict_to_str_with_mapping(d, mapping):
-    list_chunk_size = 10 # 设备列表截断数，防止语义向量化之后被平均
+    list_chunk_size = 10  # 设备列表截断数，防止语义向量化之后被平均
     items = []
     for k, v in d.items():
-        new_key = mapping.get(k, k)
+        if k not in mapping:
+            continue  # 跳过 mapping 中不存在的键
+        new_key = mapping[k]
         if isinstance(v, list):
             v_str = ','.join(str(i) for i in v[:list_chunk_size])
         else:
@@ -127,25 +132,27 @@ def transfer(meta_data:ContractMeta):
         'main_equipments':'主要设备',
         'sub_equipments':'分项设备'
     }
-    contact_meta_str = meta_data.model_dump()
+    logging.info(meta_data)
+    contact_meta_dict = meta_data.model_dump()
     # meta数据转换为字符串
-    result = dict_to_str_with_mapping(contact_meta_str, mapping)
+    result = dict_to_str_with_mapping(contact_meta_dict, mapping)
+    logging.info(result)
     return result
 
 
 def extract_contact_meta_data(content)->Tuple[str,ContractMeta]:
-    meta_instructions = ["从合同数据中提取关键信息","主要设备从最终供货一览表中提取","分项设备从分项报价表中提取","数据提取严格对应，不要遗漏，不要错对提取源"]
+    meta_instructions = ["从合同数据中提取关键信息","没有值或者为None的字段，填:无","主要设备从最终供货一览表中提取","分项设备从分项报价表中提取","数据提取严格对应，不要遗漏，不要错对提取源"]
     meta_agent = Agent(model=OpenAILike(**deepseek_settings,temperature=0),instructions=meta_instructions,response_model=ContractMeta,use_json_mode=True,telemetry=False)
     meta_agent_response = meta_agent.run(message=content)
     meta_data:ContractMeta = meta_agent_response.content
     meta_data_str = transfer(meta_data)
-    logging.info(meta_data_str)
-    logging.info(meta_data)
     return meta_data_str,meta_data
     
 
 def extract_contact_meta_data_from_file(file_path)->Tuple[str,str,ContractMeta]:
-    full_doc = exact_docx_text(contact_path)
+    full_doc = exact_docx_text(file_path)
+    llm_size_chunk = 32000 # llm最大处理的size
+    full_doc = full_doc[:llm_size_chunk]
     extract_doc_content = extract_contact_info(full_doc)
     meta_data_str,meta_contract = extract_contact_meta_data(extract_doc_content)
     return extract_doc_content,meta_data_str,meta_contract
@@ -161,11 +168,42 @@ def append_to_csv(file_path, data_dict):
         df_new = pd.DataFrame([data_dict])
         df_new.to_csv(file_path, index=False, encoding='utf-8-sig')
 
-if __name__ == '__main__':
-    contact_path = r"C:\Lee\work\contract\全部商务合同docx\01 循环风机风机合同.docx"
-    extract_doc,meta_data_str,meta_contract = extract_contact_meta_data_from_file(contact_path)
+def read_processed_files(csv_path):
+    '''读取 CSV，将每一行的文件路径存入集合，便于后续查重'''
+    processed_files = set()
+    try:
+        with open(csv_path, mode='r', newline='', encoding='utf-8') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                if row:
+                    processed_files.add(row[0])
+    except FileNotFoundError:
+        pass
+    return processed_files
+
+def list_files_in_folder(folder_path):
+    '''该函数递归遍历文件夹，返回所有文件的完整路径。'''
+    files = []
+    for root, dirs, filenames in os.walk(folder_path):
+        for filename in filenames:
+            files.append(os.path.join(root, filename))
+    return files
+
+def write_processed_file(csv_path, file_path):
+    '''在处理新文件后，将其路径追加写入 CSV。'''
+    with open(csv_path, mode='a', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow([file_path])
+
+def process_contact_file(file_path):
+    '''处理文件，提取合同信息，转换为向量，存储到数据库'''
+    db_csv_path = r"C:\Lee\work\contract\csv\contract_data.csv"
+    
+    extract_doc,meta_data_str,meta_contract = extract_contact_meta_data_from_file(file_path)
+    embedding = get_embedding(meta_data_str)
+    embedding_json = json.dumps(embedding)
     store_data = {
-      "vector": '', 
+      "vector": embedding_json, 
       "meta_str": meta_data_str,
       "doc": extract_doc,
       "contact_no": meta_contract.contact_no,
@@ -174,9 +212,40 @@ if __name__ == '__main__':
       "total_price_str": meta_contract.total_price_str,
       "total_price": meta_contract.total_price,
       "date": meta_contract.date,
+      "year": meta_contract.year,
       "supplier": meta_contract.supplier,
       "main_equipments": ','.join(meta_contract.main_equipments),
       "sub_equipments": ','.join(meta_contract.sub_equipments)
     }
-    csv_file_path = r"C:\Lee\work\contract\csv\contract_data.csv"
-    append_to_csv(csv_file_path, store_data)
+    
+    append_to_csv(db_csv_path, store_data)
+
+def process_files(folder_path, csv_path):
+    '''先读取已处理文件集合，然后遍历所有文件，未处理的才执行处理函数并记录。'''
+    processed_files = read_processed_files(csv_path)
+    files = list_files_in_folder(folder_path)
+    for file in files:
+        if file not in processed_files:
+            process_contact_file(file)
+            write_processed_file(csv_path, file)
+
+def get_embedding(text,model='text-embedding-v4',dimensions=2048):
+    client = OpenAI(
+        api_key=api_key, 
+        base_url=base_url
+    )
+
+    completion = client.embeddings.create(
+        model=model,
+        input=text,
+        dimensions=dimensions, # 指定向量维度（仅 text-embedding-v3及 text-embedding-v4支持该参数）
+        encoding_format="float"
+    )
+    
+    return completion.data[0].embedding
+
+if __name__ == '__main__':
+    contact_path = r"C:\Lee\work\contract\demo"
+    processed_csv_path = r'C:\Lee\work\contract\csv\processed_files.csv'
+    process_files(contact_path, processed_csv_path)
+    # process_contact_file(contact_path)
