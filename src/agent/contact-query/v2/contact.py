@@ -6,6 +6,7 @@ from textwrap import dedent
 from pydantic import BaseModel, Field
 from typing import List, Tuple
 import logging
+import pandas as pd
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s:%(filename)s:%(lineno)d - %(message)s',datefmt='%Y-%m-%d %H:%M:%S',level=logging.INFO) 
 
@@ -47,7 +48,8 @@ class ContractMeta(BaseModel):
     # contact_type: str = Field(..., description="合同类型")
     project_name: str = Field(..., description="项目名称")
     subitem_name: str = Field(..., description="子项名称")
-    total_price: str = Field(..., description="合同金额")
+    total_price_str: str = Field(..., description="合同金文本")
+    total_price: float = Field(..., description="合同金额")
     date: str = Field(..., description="合同签订日期")
     # buyer: str = Field(..., description="买方名称")
     supplier: str = Field(..., description="卖方名称")
@@ -148,7 +150,33 @@ def extract_contact_meta_data_from_file(file_path)->Tuple[str,str,ContractMeta]:
     meta_data_str,meta_contract = extract_contact_meta_data(extract_doc_content)
     return extract_doc_content,meta_data_str,meta_contract
 
+def append_to_csv(file_path, data_dict):
+    file_exists = os.path.exists(file_path)
+    if file_exists:
+        df_existing = pd.read_csv(file_path, encoding='utf-8-sig')
+        df_new = pd.DataFrame([data_dict])
+        df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+        df_combined.to_csv(file_path, index=False, encoding='utf-8-sig')
+    else:
+        df_new = pd.DataFrame([data_dict])
+        df_new.to_csv(file_path, index=False, encoding='utf-8-sig')
 
 if __name__ == '__main__':
-    contact_path = r"C:\Lee\work\contract\精简\test\09 补偿器采购合同.docx"
+    contact_path = r"C:\Lee\work\contract\全部商务合同docx\01 循环风机风机合同.docx"
     extract_doc,meta_data_str,meta_contract = extract_contact_meta_data_from_file(contact_path)
+    store_data = {
+      "vector": '', 
+      "meta_str": meta_data_str,
+      "doc": extract_doc,
+      "contact_no": meta_contract.contact_no,
+      "project_name": meta_contract.project_name,
+      "subitem_name": meta_contract.subitem_name,
+      "total_price_str": meta_contract.total_price_str,
+      "total_price": meta_contract.total_price,
+      "date": meta_contract.date,
+      "supplier": meta_contract.supplier,
+      "main_equipments": ','.join(meta_contract.main_equipments),
+      "sub_equipments": ','.join(meta_contract.sub_equipments)
+    }
+    csv_file_path = r"C:\Lee\work\contract\csv\contract_data.csv"
+    append_to_csv(csv_file_path, store_data)
