@@ -40,8 +40,8 @@ settings = deepseek_settings
 #------------------ settings ------------------
 
 vector_db = LanceDb(
-    table_name="contact_table",
-    uri="C:\\Lee\\work\\contract\\db\\tmp\\contact_vectors.lancedb",
+    table_name="contract_table",
+    uri="C:/Lee/work/db/contact_lancedb",
     search_type=SearchType.hybrid,
     embedder=OpenAIEmbedder(id=embedding_model_id,api_key=api_key,base_url=base_url, dimensions=2048),
 )
@@ -69,7 +69,7 @@ agent = Agent(
 
 # agent.print_response(message='包头钢铁烧结机余热项目和宝钢德盛烧结余热项目的余热锅炉价格相差多少')
 
-response = agent.run(message='包头钢铁烧结机余热项目和宝钢德盛烧结余热项目的余热锅炉价格相差多少')
+response = agent.run(message='宝钢项目有哪些设备采购')
 print(response)
 
 # app = Playground(agents=[agent]).get_app()
