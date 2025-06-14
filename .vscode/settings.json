@@ -20,6 +20,8 @@
     "openrouter",
     "QWEATHER",
     "reinit",
+    "rerank",
+    "reranker",
     "selectbox",
     "streamlit",
     "taipy",

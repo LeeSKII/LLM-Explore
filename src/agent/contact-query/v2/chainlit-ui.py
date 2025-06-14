@@ -14,6 +14,9 @@ import json
 from typing import Optional
 import dashscope
 from http import HTTPStatus
+from agno.utils.log import log_debug
+import lancedb
+from openai import OpenAI
 
 load_dotenv()
 
@@ -68,12 +71,23 @@ instructions = ['查询合同详情的时候请列出所有相关合同的数据
                 '必须使用简体中文回复',
                 ]
 
-vector_db = LanceDb(
-      table_name="contact_table",
-      uri="C:\\Lee\\work\\contract\\db\\tmp\\contact_vectors.lancedb",
-      search_type=SearchType.hybrid,
-      embedder=OpenAIEmbedder(id=embedding_model_id,api_key=api_key,base_url=base_url, dimensions=2048),
+db = lancedb.connect("C:/Lee/work/db/contact_lancedb") 
+table = db.open_table("contract_table")
+
+def get_embedding(text,model='text-embedding-v4',dimensions=2048):
+    client = OpenAI(
+        api_key=api_key, 
+        base_url=base_url
     )
+
+    completion = client.embeddings.create(
+        model=model,
+        input=text,
+        dimensions=dimensions, # 指定向量维度（仅 text-embedding-v3及 text-embedding-v4支持该参数）
+        encoding_format="float"
+    )
+    
+    return completion.data[0].embedding
 
 def text_rerank(query,documents,api_key,threshold=0.4):
     resp = dashscope.TextReRank.call(
@@ -87,19 +101,27 @@ def text_rerank(query,documents,api_key,threshold=0.4):
     if resp.status_code == HTTPStatus.OK:
         # print(resp)
         results = resp.output.results
+        scores = [result.relevance_score for result in results]
+        log_debug(f"\n\n查询到相关系数: {scores}\n\n")
         results = [result for result in results if result.relevance_score > threshold]
         return results
     else:
         # print(resp)
         return None
 
-def retriever_with_rerank(query,num_documents=60):
-    results = vector_db.search(query,limit=num_documents)
-    content_list = [result.content for result in results]
-    document_chunk_size = 3000 # max number of characters in each document chunk for reranker
-    documents = [content[:document_chunk_size] for content in content_list]
+def retriever_with_rerank(query,num_documents=5):
+    # results = vector_db.search(query,limit=num_documents)
+    # Vector search with filters (pre-filtering is the default)
     
-    reranker_results = text_rerank(query,documents,api_key=dashscope_api_key)
+    embedding = get_embedding(query)
+    search_results = table.search(embedding,vector_column_name="vector").limit(num_documents).to_pandas()
+    log_debug(f"\n\n查询到文档数: {len(search_results)}\n\n")
+    content_list = search_results['doc'].tolist()
+
+    document_chunk_size = 5000 # max number of characters in each document chunk for reranker
+    documents = [content[:document_chunk_size] for content in content_list]
+    # log_debug(f"\n\n\n\n\n查询到文档: {documents}\n\n\n\n\n")
+    reranker_results = text_rerank(query,documents,api_key=dashscope_api_key, threshold=0.2)
     
     content_list_rerank = []
     if reranker_results is None:
@@ -113,18 +135,19 @@ def retriever_with_rerank(query,num_documents=60):
     return content_list_rerank
 
 def retriever(
-    query: str, agent: Optional[Agent] = None, num_documents: int = 20, **kwargs
+    query: str, agent: Optional[Agent] = None, num_documents: int = 10, **kwargs
 ) -> Optional[list[dict]]:
     """
     Custom retriever function to search the vector database for relevant documents.
     """
     try:
         # log_debug(f"\n\n\n\n\nretriever: {query}\n\n\n\n\n")
-        result = retriever_with_rerank(query,40)
+        result = retriever_with_rerank(query,10)
         return result
     except Exception as e:
         print(f"Error during vector database search: {str(e)}")
         return None
+
 
 @cl.set_starters
 async def set_starters():
