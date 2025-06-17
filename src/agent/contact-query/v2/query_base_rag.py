@@ -12,6 +12,8 @@ from http import HTTPStatus
 import lancedb
 from openai import OpenAI
 from agno.utils.log import log_debug
+import pandas as pd
+
 #------------------ settings ------------------
 import os
 from dotenv import load_dotenv
@@ -45,7 +47,7 @@ deepseek_settings = {
 settings = deepseek_settings
 #------------------ settings ------------------
 
-db = lancedb.connect("C:/Lee/work/db/contact_lancedb") 
+db = lancedb.connect("C:/Lee/work/db/contract_full_lancedb") 
 table = db.open_table("contract_table")
 
 def get_embedding(text,model='text-embedding-v4',dimensions=2048):
@@ -88,14 +90,19 @@ def retriever_with_rerank(query,num_documents=5):
     # Vector search with filters (pre-filtering is the default)
     
     embedding = get_embedding(query)
-    search_results = table.search(embedding,vector_column_name="vector").limit(num_documents).to_pandas()
+    search_vector_results = table.search(embedding,vector_column_name="vector").nprobes(256).limit(num_documents).to_pandas()  
+    search_like_results = table.search().where(f"doc LIKE '%{query}%'").limit(num_documents).to_pandas()
+    
+    search_merged = pd.concat([search_like_results, search_vector_results], ignore_index=True)
+    search_results = search_merged.drop_duplicates(subset='meta_str', keep='first')
+    
     log_debug(f"\n\n查询到文档数: {len(search_results)}\n\n")
     content_list = search_results['doc'].tolist()
 
     document_chunk_size = 5000 # max number of characters in each document chunk for reranker
     documents = [content[:document_chunk_size] for content in content_list]
     # log_debug(f"\n\n\n\n\n查询到文档: {documents}\n\n\n\n\n")
-    reranker_results = text_rerank(query,documents,api_key=dashscope_api_key, threshold=0.2)
+    reranker_results = text_rerank(query,documents,api_key=dashscope_api_key, threshold=0.5)
     
     content_list_rerank = []
     if reranker_results is None:
@@ -144,7 +151,7 @@ agent = Agent(
 
 # agent.print_response(message='包头钢铁烧结机余热项目和宝钢德盛烧结余热项目的余热锅炉价格相差多少')
 
-response = agent.run(message='有哪些项目采购了余热锅炉设备')
+response = agent.run(message='包头钢铁烧结机余热项目和宝钢德盛烧结余热项目的余热锅炉价格相差多少')
 print(response)
 
 # app = Playground(agents=[agent]).get_app()

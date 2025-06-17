@@ -1,5 +1,5 @@
 import os
-from agno.agent import Agent,AgentKnowledge,RunResponse,RunEvent
+from agno.agent import Agent,AgentKnowledge,RunResponse,RunEvent,RunResponseEvent
 from agno.models.openai.like import OpenAILike
 from dotenv import load_dotenv
 from agno.vectordb.lancedb import LanceDb
@@ -119,7 +119,7 @@ def retriever_with_rerank(query,num_documents=5):
     search_like_results = table.search().where(f"doc LIKE '%{query}%'").limit(num_documents).to_pandas()
     
     search_merged = pd.concat([search_like_results, search_vector_results], ignore_index=True)
-    search_results = search_merged.drop_duplicates(subset='contact_no', keep='first')
+    search_results = search_merged.drop_duplicates(subset='meta_str', keep='first')
     
     log_debug(f"\n\n查询到文档数: {len(search_results)}\n\n")
     content_list = search_results['doc'].tolist()
@@ -127,7 +127,7 @@ def retriever_with_rerank(query,num_documents=5):
     document_chunk_size = 5000 # max number of characters in each document chunk for reranker
     documents = [content[:document_chunk_size] for content in content_list]
     # log_debug(f"\n\n\n\n\n查询到文档: {documents}\n\n\n\n\n")
-    reranker_results = text_rerank(query,documents,api_key=dashscope_api_key, threshold=0.2)
+    reranker_results = text_rerank(query,documents,api_key=dashscope_api_key, threshold=0.5)
     
     content_list_rerank = []
     if reranker_results is None:
@@ -187,7 +187,7 @@ async def set_starters():
 
 @cl.on_chat_start
 async def init_agent():
-    await cl.context.emitter.set_commands(COMMANDS)
+    # await cl.context.emitter.set_commands(COMMANDS)
     
     # knowledge_base = AgentKnowledge(vector_db=vector_db,num_documents=5)
     agent = Agent(
@@ -207,36 +207,13 @@ async def init_agent():
       telemetry=False,
       debug_mode=False,
     )
-    
-    agent_reasoning = Agent(
-      model=OpenAILike(**settings,temperature=temperature),
-      name='Contact_Query_Agent',
-      instructions=instructions,
-    #   knowledge=knowledge_base,
-      search_knowledge=True,
-      retriever=retriever,
-      add_history_to_messages=True,
-      num_history_responses=20,
-      tools=[ReasoningTools(add_instructions=True)],
-      markdown=True,
-      add_datetime_to_instructions=True,
-      # add_references=True,
-      stream=True,
-      stream_intermediate_steps=True,
-      telemetry=False,
-      debug_mode=False,
-    )
 
     cl.user_session.set("agent", agent)
-    cl.user_session.set("agent_reasoning", agent_reasoning)
 
 @cl.on_message
 async def on_message(msg: cl.Message):
     # Process message with or without explicit search command
-    if msg.command == "Reasoning":
-        agent:Agent = cl.user_session.get("agent_reasoning")
-    else:
-        agent:Agent = cl.user_session.get("agent")
+    agent:Agent = cl.user_session.get("agent")
     
     # agent:Agent = cl.user_session.get("agent")
     
@@ -247,18 +224,17 @@ async def on_message(msg: cl.Message):
     for response in await cl.make_async(agent.run)(user_query, stream=True):
         # if response.event != RunEvent.run_response:
         #     print(response.event,"----",response)
-        if response.event != RunEvent.run_response and run_start_step:
+        if response.event != 'RunResponseContent' and run_start_step:
             await run_start_step.remove()
-        if response.event == RunEvent.run_response:
+        if response.event == 'RunResponseContent':
             await message.stream_token(response.content)
-        elif response.event == RunEvent.tool_call_started:
-            for tool in response.tools:
-              # 通过id屏蔽重复项的出现
-              async with cl.Step(name=tool.tool_name,id=tool.tool_call_id) as tool_call_step:
-                  tool_args_str = json.dumps(tool.tool_args, indent=2, ensure_ascii=False)
-                  tool_call_step.input = f"Tool Args: {tool_args_str}"
-                      
-        elif response.event == RunEvent.reasoning_step:
+        elif response.event == 'ToolCallStarted':
+            tool = response.tool
+            async with cl.Step(name=tool.tool_name,id=tool.tool_call_id) as tool_call_step:
+                tool_args_str = json.dumps(tool.tool_args, indent=2, ensure_ascii=False)
+                tool_call_step.input = f"Tool Args: {tool_args_str}"
+                                
+        elif response.event == 'ReasoningStarted':
             # name = response.event+f":{response.content.title}" # 使用动态name会有繁忙图标问题
             async with cl.Step(name='reasoning',default_open=False) as reasoning_step:
                 # reasoning_step.output = response.reasoning_content
@@ -266,7 +242,7 @@ async def on_message(msg: cl.Message):
                 reasoning_step.output = response.reasoning_content
                 # await reasoning_step.stream_token(response.reasoning_content)
                 # await reasoning_step.update()
-        elif response.event == RunEvent.run_started:
+        elif response.event == 'RunStarted':
             async with cl.Step(name="合同查询 Agent 开始执行...") as run_start_step:
                 pass
         else:

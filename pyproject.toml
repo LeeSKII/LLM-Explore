@@ -21,4 +21,5 @@ dependencies = [
   "langchain-google-genai>=2.1.5",
   "langgraph>=0.4.8",
   "ollama>=0.5.1",
+  "dashscope>=1.23.5",
 ]
