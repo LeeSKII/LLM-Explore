@@ -7,8 +7,8 @@ from pydantic import BaseModel, Field
 from typing import List, Tuple
 import logging
 import pandas as pd
-from openai import OpenAI
 import json
+from openai import OpenAI, max_retries
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s:%(filename)s:%(lineno)d - %(message)s',datefmt='%Y-%m-%d %H:%M:%S',level=logging.INFO) 
 
@@ -44,6 +44,7 @@ deepseek_settings = {
 settings = local_settings
 #------------------ settings ------------------
 
+# 这里的year和total_price默认值应该给0，否则会在没有数值的时候由LLM赋值无导致无法正确解析pydantic模型
 class ContractMeta(BaseModel):
     contact_no: str = Field(..., description="买方合同编号")
     # supplier_contact_no: str = Field(..., description="卖方合同编号")
@@ -51,9 +52,9 @@ class ContractMeta(BaseModel):
     project_name: str = Field(..., description="项目名称")
     subitem_name: str = Field(..., description="子项名称")
     total_price_str: str = Field(..., description="合同金文本")
-    total_price: float = Field(..., description="合同金额")
+    total_price: float = Field(default=0, description="合同金额")
     date: str = Field(..., description="合同签订日期")
-    year: int = Field(..., description="合同签订年份")
+    year: int = Field(default=0, description="合同签订年份")
     # buyer: str = Field(..., description="买方名称")
     supplier: str = Field(..., description="卖方名称")
     main_equipments: List[str] = Field(..., description="主要设备")
@@ -68,8 +69,7 @@ def exact_docx_text(docx_path)->str:
     logging.info(contact_info.value[:100]+'...'+contact_info.value[-100:])
     return contact_info.value
 
-
-def extract_contact_info(content):
+def run_extract_agent(content):
     instructions = ["严格按照expected_output中的键解析合同中的信息",
                 "直接输出合同信息文本，严禁使用json格式或者```markdown```包裹",
                 "严禁遗漏在expected_output中提到的任何信息",
@@ -100,11 +100,22 @@ def extract_contact_info(content):
     合同签订日期
     最终供货一览表
     分项报价表''')
-    agent = Agent(model=OpenAILike(**settings,temperature=0),description="你是一位合同解析专员，严格严谨遵守约定",instructions=instructions,expected_output=expected_output,telemetry=False)
+    agent = Agent(model=OpenAILike(**settings,temperature=0,max_retries=3),description="你是一位合同解析专员，严格严谨遵守约定",instructions=instructions,expected_output=expected_output,telemetry=False)
     response = agent.run(message=content)
-    contact_exact_result = response.content.strip()
-    logging.info(contact_exact_result)
-    return contact_exact_result
+    return response.content
+
+def extract_contact_info(content):
+    max_retries = 3
+    for i in range(max_retries):
+        try:
+            response = run_extract_agent(content)        
+            if response:
+                contact_exact_result = response.strip()
+                logging.info(f"Contact extraction result: {contact_exact_result}")
+                return contact_exact_result
+        except Exception as e:
+            logging.error(f"Error in contact extraction: {e}")
+    return None
 
 # 转换函数
 def dict_to_str_with_mapping(d, mapping):
@@ -142,7 +153,7 @@ def transfer(meta_data:ContractMeta):
 
 def extract_contact_meta_data(content)->Tuple[str,ContractMeta]:
     meta_instructions = ["从合同数据中提取关键信息","没有值或者为None的字段，填:无","主要设备从最终供货一览表中提取","分项设备从分项报价表中提取","数据提取严格对应，不要遗漏，不要错对提取源"]
-    meta_agent = Agent(model=OpenAILike(**deepseek_settings,temperature=0),instructions=meta_instructions,response_model=ContractMeta,use_json_mode=True,telemetry=False)
+    meta_agent = Agent(model=OpenAILike(**deepseek_settings,temperature=0,max_retries=10),instructions=meta_instructions,response_model=ContractMeta,use_json_mode=True,telemetry=False)
     meta_agent_response = meta_agent.run(message=content)
     meta_data:ContractMeta = meta_agent_response.content
     meta_data_str = transfer(meta_data)
