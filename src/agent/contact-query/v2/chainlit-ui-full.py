@@ -127,7 +127,7 @@ def retriever_with_rerank(query,num_documents=5):
     document_chunk_size = 5000 # max number of characters in each document chunk for reranker
     documents = [content[:document_chunk_size] for content in content_list]
     # log_debug(f"\n\n\n\n\n查询到文档: {documents}\n\n\n\n\n")
-    reranker_results = text_rerank(query,documents,api_key=dashscope_api_key, threshold=0.5)
+    reranker_results = text_rerank(query,documents,api_key=dashscope_api_key, threshold=0.4)
     
     content_list_rerank = []
     if reranker_results is None:
@@ -205,7 +205,7 @@ async def init_agent():
       stream=True,
       stream_intermediate_steps=True,
       telemetry=False,
-      debug_mode=False,
+      debug_mode=True,
     )
 
     cl.user_session.set("agent", agent)
