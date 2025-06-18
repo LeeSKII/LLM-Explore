@@ -47,10 +47,10 @@ def get_weather(city:str)->str:
 # 如果再设置add_few_shot=True，则会在system_prompt中添加框架自带的few_shot_example到system_prompt中
 agent = Agent(model=OpenAILike(**settings),telemetry=False,tools=[get_weather,ReasoningTools(add_instructions=True,add_few_shot=True)],markdown=True,debug_mode=True)
 
-# if __name__ == '__main__':
-#     # logging.info('Starting agent...')
-#     agent.print_response(message='今天长沙适合什么活动',stream=True,show_full_reasoning=True,stream_intermediate_steps=True)
+if __name__ == '__main__':
+    # logging.info('Starting agent...')
+    agent.print_response(message='今天长沙适合什么活动',stream=True,show_full_reasoning=True,stream_intermediate_steps=True)
 
-app = Playground(agents=[agent]).get_app()
-if __name__ == "__main__":
-    serve_playground_app("1_tools_instructions:app", reload=True)
+# app = Playground(agents=[agent]).get_app()
+# if __name__ == "__main__":
+#     serve_playground_app("1_tools_instructions:app", reload=True)

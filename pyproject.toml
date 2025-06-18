@@ -22,4 +22,5 @@ dependencies = [
   "langgraph>=0.4.8",
   "ollama>=0.5.1",
   "dashscope>=1.23.5",
+  "exa-py>=1.9.1",
 ]
