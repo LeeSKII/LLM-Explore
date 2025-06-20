@@ -98,7 +98,6 @@ def text_rerank(query,documents,api_key,threshold=0.1):
         model="gte-rerank-v2",
         query=query,
         documents=documents,
-        top_n=20,
         return_documents=False,
         api_key=api_key,
     )
@@ -113,7 +112,7 @@ def text_rerank(query,documents,api_key,threshold=0.1):
         # print(resp)
         return None
 
-def retriever_with_rerank(query,num_documents=5):
+def retriever_with_rerank(query,num_documents=30):
     # results = vector_db.search(query,limit=num_documents)
     # Vector search with filters (pre-filtering is the default)
     
@@ -176,7 +175,7 @@ def search_knowledge_base_with_year(query: str,year:int) -> Optional[list[dict]]
         Optional[list[dict]]: 包含文档内容和相关度得分的字典列表.
     '''
     try:
-        num_documents = 20
+        num_documents = 30
         embedding = get_embedding(query)
         search_vector_results = table.search(embedding,vector_column_name="vector").where(f"year>={year}").nprobes(256).limit(num_documents).to_pandas()  
         search_like_results = table.search().where(f"doc LIKE '%{query}%' AND year>={year}").limit(num_documents).to_pandas()
