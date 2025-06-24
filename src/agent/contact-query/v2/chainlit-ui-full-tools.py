@@ -30,7 +30,7 @@ model_name = 'qwen-plus-latest'
 embedding_model_id = 'text-embedding-v4'
 dashscope_api_key = os.getenv("QWEN_API_KEY")
 
-temperature = 0.1
+temperature = 0.01
 local_settings = {
   'api_key' : '123',
   'base_url' : local_base_url,
@@ -73,6 +73,7 @@ instructions = ['查询合同详情的时候请列出所有相关合同的数据
                 '合同查询结果请按年份从新到旧排列',
                 '合同查询结果请按合同金额从高到低排列',
                 '必须使用简体中文回复',
+                "no_think"
                 ]
 
 db = lancedb.connect("C:/Lee/work/db/contract_full_lancedb") 
@@ -255,7 +256,6 @@ async def init_agent():
       add_history_to_messages=True,
       num_history_responses=20,
       markdown=True,
-      add_datetime_to_instructions=True,
       stream=True,
       stream_intermediate_steps=True,
       telemetry=False,
