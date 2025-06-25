@@ -19,6 +19,7 @@ from agno.utils.log import log_debug
 import lancedb
 from openai import OpenAI,AsyncOpenAI
 import pandas as pd
+import threading
 
 load_dotenv()
 
@@ -76,7 +77,8 @@ instructions = ['查询合同详情的时候请列出所有相关合同的数据
                 "no_think"
                 ]
 
-db = lancedb.connect("C:/Lee/work/db/contract_full_lancedb")
+db_path = "C:/Lee/work/db/contract_full_lancedb"
+db = lancedb.connect(db_path)
 table = db.open_table("contract_table")
 
 def limit_content_length(content_list):
@@ -175,6 +177,11 @@ def search_knowledge_base(query: str) -> Optional[list[dict]]:
     Returns:
         Optional[list[dict]]: 包含文档内容和相关度得分的字典列表.
     '''
+    # current_thread = threading.current_thread() # 确认工具运行在异步线程
+    # print(
+    #     f"【线程信息】工具运行在: {current_thread.name} (ID: {current_thread.ident})\n"
+    #     f"是否是主线程: {current_thread is threading.main_thread()}"
+    # )
     try:
         # log_debug(f"\n\n\n\n\nretriever: {query}\n\n\n\n\n")
         result = retriever_with_rerank(query,15)
