@@ -17,7 +17,7 @@ import dashscope
 from http import HTTPStatus
 from agno.utils.log import log_debug
 import lancedb
-from openai import OpenAI
+from openai import OpenAI,AsyncOpenAI
 import pandas as pd
 
 load_dotenv()
@@ -76,8 +76,30 @@ instructions = ['查询合同详情的时候请列出所有相关合同的数据
                 "no_think"
                 ]
 
-db = lancedb.connect("C:/Lee/work/db/contract_full_lancedb") 
+db = lancedb.connect("C:/Lee/work/db/contract_full_lancedb")
 table = db.open_table("contract_table")
+
+def limit_content_length(content_list):
+    # Initialize variables
+    total_length = 0
+    limited_content_list = []
+
+    for content in content_list:
+        content_str = str(content)  # Convert to string in case it's not already
+        content_length = len(content_str)
+        
+        # Check if adding this content would exceed the limit
+        if total_length + content_length <= 60000:
+            limited_content_list.append(content_str)
+            total_length += content_length
+        else:
+            remaining_space = 60000 - total_length
+            if remaining_space > 0:  # Add a partial entry if there's space left
+                limited_content_list.append(content_str[:remaining_space])
+                total_length += remaining_space
+            break  # We've reached the limit
+
+    return limited_content_list
 
 def get_embedding(text,model='text-embedding-v4',dimensions=2048):
     client = OpenAI(
@@ -114,18 +136,17 @@ def text_rerank(query,documents,api_key,threshold=0.1):
         return None
 
 def retriever_with_rerank(query,num_documents=30):
-    # results = vector_db.search(query,limit=num_documents)
-    # Vector search with filters (pre-filtering is the default)
-    
     embedding = get_embedding(query)
-    search_vector_results = table.search(embedding,vector_column_name="vector").nprobes(256).limit(num_documents).to_pandas()  
+    search_vector_results = table.search(embedding,vector_column_name="vector").nprobes(50).limit(num_documents).to_pandas()  
     search_like_results = table.search().where(f"doc LIKE '%{query}%'").limit(num_documents).to_pandas()
     
-    search_merged = pd.concat([search_like_results, search_vector_results], ignore_index=True)
+    search_merged =  pd.concat([search_like_results, search_vector_results], ignore_index=True)
     search_results = search_merged.drop_duplicates(subset='meta_str', keep='first')
     
     log_debug(f"\n\n查询到文档数: {len(search_results)}\n\n")
     content_list = search_results['doc'].tolist()
+    
+    content_list = limit_content_length(content_list)
 
     document_chunk_size = 5000 # max number of characters in each document chunk for reranker
     documents = [content[:document_chunk_size] for content in content_list]
@@ -134,7 +155,7 @@ def retriever_with_rerank(query,num_documents=30):
     
     content_list_rerank = []
     if reranker_results is None:
-        raise Exception("Reranker failed")
+        pass
     if len(reranker_results) == 0:
         pass
     else:
@@ -156,7 +177,7 @@ def search_knowledge_base(query: str) -> Optional[list[dict]]:
     '''
     try:
         # log_debug(f"\n\n\n\n\nretriever: {query}\n\n\n\n\n")
-        result = retriever_with_rerank(query,30)
+        result = retriever_with_rerank(query,15)
         return result
     except Exception as e:
         print(f"Error during vector database search: {str(e)}")
@@ -178,14 +199,15 @@ def search_knowledge_base_with_year(query: str,year:int) -> Optional[list[dict]]
     try:
         num_documents = 30
         embedding = get_embedding(query)
-        search_vector_results = table.search(embedding,vector_column_name="vector").where(f"year>={year}").nprobes(256).limit(num_documents).to_pandas()  
+        search_vector_results = table.search(embedding,vector_column_name="vector").where(f"year>={year}").nprobes(256).limit(num_documents).to_pandas()
         search_like_results = table.search().where(f"doc LIKE '%{query}%' AND year>={year}").limit(num_documents).to_pandas()
-        
         search_merged = pd.concat([search_like_results, search_vector_results], ignore_index=True)
         search_results = search_merged.drop_duplicates(subset='meta_str', keep='first')
         
         log_debug(f"\n\n查询到文档数: {len(search_results)}\n\n")
         content_list = search_results['doc'].tolist()
+        
+        content_list = limit_content_length(content_list)
 
         document_chunk_size = 5000 # max number of characters in each document chunk for reranker
         documents = [content[:document_chunk_size] for content in content_list]
@@ -194,7 +216,7 @@ def search_knowledge_base_with_year(query: str,year:int) -> Optional[list[dict]]
         
         content_list_rerank = []
         if reranker_results is None:
-            raise Exception("Reranker failed")
+            pass
         if len(reranker_results) == 0:
             pass
         else:
@@ -205,8 +227,6 @@ def search_knowledge_base_with_year(query: str,year:int) -> Optional[list[dict]]
     except Exception as e:
         print(f"Error during vector database search: {str(e)}")
         return None
-
-
 
 @cl.set_starters
 async def set_starters():
@@ -269,39 +289,25 @@ async def on_message(msg: cl.Message):
     # Process message with or without explicit search command
     agent:Agent = cl.user_session.get("agent")
     
-    # agent:Agent = cl.user_session.get("agent")
-    
     message = cl.Message(content="")
     user_query = msg.content 
     run_start_step = None
 
-    for response in await cl.make_async(agent.run)(user_query, stream=True):
-        # if response.event != RunEvent.run_response:
-        #     print(response.event,"----",response)
-        if response.event != 'RunResponseContent' and run_start_step:
+    async for chunk in await agent.arun(user_query):
+        #print("收到数据块:", chunk)
+        if chunk.event != 'RunResponseContent' and run_start_step:
             await run_start_step.remove()
-        if response.event == 'RunResponseContent':
-            await message.stream_token(response.content)
-        elif response.event == 'ToolCallStarted':
-            tool = response.tool
-            async with cl.Step(name=tool.tool_name,id=tool.tool_call_id) as tool_call_step:
+        if chunk.event == 'RunResponseContent':
+            await message.stream_token(chunk.content) 
+        elif chunk.event == 'ToolCallStarted':
+            tool = chunk.tool
+            with cl.Step(name=tool.tool_name,id=tool.tool_call_id) as tool_call_step:
                 tool_args_str = json.dumps(tool.tool_args, indent=2, ensure_ascii=False)
                 tool_call_step.input = f"Tool Args: {tool_args_str}"
-                                
-        elif response.event == 'ReasoningStarted':
-            # name = response.event+f":{response.content.title}" # 使用动态name会有繁忙图标问题
-            async with cl.Step(name='reasoning',default_open=False) as reasoning_step:
-                # reasoning_step.output = response.reasoning_content
-                reasoning_step.input = json.dumps({"title":response.content.title,"action":response.content.action}, indent=2, ensure_ascii=False)
-                reasoning_step.output = response.reasoning_content
-                # await reasoning_step.stream_token(response.reasoning_content)
-                # await reasoning_step.update()
-        elif response.event == 'RunStarted':
+        elif chunk.event == 'RunStarted':
             async with cl.Step(name="合同查询 Agent 开始执行...") as run_start_step:
                 pass
-        else:
-            pass
-            
+
     await message.send()
 
 if __name__ == "__main__":
