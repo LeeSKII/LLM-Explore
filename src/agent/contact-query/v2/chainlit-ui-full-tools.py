@@ -71,11 +71,20 @@ instructions = ['查询合同详情的时候请列出所有相关合同的数据
                 '查询合同详情的时候请列出所有数据，严禁遗漏任何条目',
                 '禁止虚构和假设任何数据',
                 '如果需要进行合同比对的时候，请按需**分别**查出所有项目后再进行比对',
+                '合同设备原始格式可能为html,都必须转换成markdown table格式，方便人工阅读对比',
                 '合同查询结果请按年份从新到旧排列',
                 '合同查询结果请按合同金额从高到低排列',
                 '必须使用简体中文回复',
-                "no_think"
+                # "no_think"
                 ]
+
+additional_context =[
+    """如果用户需要查询近几年的某个设备信息，首先请根据当前年份进行反推，然后使用search_knowledge_base_with_year工具，指定年份和设备查询：
+例如查询近3年的余热锅炉合同，首先根据提示知道今年是2025年，然后反推近三年为2025、2024、2023，因此最早的年份是2023年，使用search_knowledge_base_with_year工具查询：
+search_knowledge_base_with_year("余热锅炉",2023)
+然后在返回结果汇总中，重点返回这指定近几年年份的合同
+    """
+]
 
 db_path = "C:/Lee/work/db/contract_full_lancedb"
 db = lancedb.connect(db_path)
@@ -279,11 +288,13 @@ async def init_agent():
       model=OpenAILike(**settings,temperature=temperature),
       name='Contact_Query_Agent',
       instructions=instructions,
+      additional_context=additional_context,
       tools=[search_knowledge_base,search_knowledge_base_with_year],
       add_history_to_messages=True,
       num_history_responses=20,
       markdown=True,
       stream=True,
+      add_datetime_to_instructions=True,
       stream_intermediate_steps=True,
       telemetry=False,
       debug_mode=True,
