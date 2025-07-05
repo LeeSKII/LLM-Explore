@@ -23,6 +23,14 @@ def multiply(a: int, b: int) -> int:
     """Multiply two numbers."""
     return a * b
 
+@tool
+def sum(a: int, b: int) -> int:
+    """Sum two numbers."""
+    return a + b
+
+tools_list = [multiply,sum]
+
+# 使用prebuilt的tool node，state中必须有键名为messages，并且使用add_messages reducer函数处理该消息
 class State(TypedDict):
     messages:Annotated[list,add_messages]
     
@@ -30,14 +38,15 @@ graph_builder = StateGraph(State)
 
 llm = ChatOpenAI(model="qwen-plus-latest",api_key=api_key,base_url=base_url,temperature=0.01)
 
-llm_with_tools = llm.bind_tools([multiply])
+llm_with_tools = llm.bind_tools(tools_list)
 
 
 def chat_bot_node(state:State)->State:
     message = llm_with_tools.invoke(state["messages"])
     return {"messages": [message]}
 
-tool_node = ToolNode(tools=[multiply])
+# tool_node的输入是messages，其中最后一个信息是AIMessage，并且包含了tool_calls，输出则是append了ToolMessage的messages
+tool_node = ToolNode(tools=tools_list)
 
 def route_tools(state:State):
     if isinstance(state, list):
@@ -57,6 +66,7 @@ graph_builder.add_conditional_edges("chat_bot_node",route_tools,{"call_tool":"ca
 
 graph = graph_builder.compile()
 
-result_node = graph.invoke({"messages": [HumanMessage(content="3 * 34是多少")]})
+result_node = graph.invoke({"messages": [HumanMessage(content="3 * 34的结果再加上45是多少")]})
 
-print(result_node['messages'][-1])
+for message in result_node['messages']:
+    print(message)
