@@ -1,4 +1,3 @@
-from turtle import st
 from typing import Annotated
 
 from typing_extensions import TypedDict
