@@ -26,4 +26,5 @@ dependencies = [
   "crawl4ai>=0.6.3",
   "playwright>=1.52.0",
   "jina>=3.8.2",
+  "tavily-python>=0.7.9",
 ]
