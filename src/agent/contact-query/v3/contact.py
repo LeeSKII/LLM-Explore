@@ -1,4 +1,5 @@
 import csv
+from math import log
 from agno.agent import Agent
 from agno.models.openai import OpenAILike
 import mammoth
@@ -37,8 +38,8 @@ settings = qwen_settings
 #------------------ settings ------------------
 
 class Party(BaseModel):
-    name: str = Field(default="", description="公司名称")
-    address: str = Field(default="", description="公司地址")
+    name: Optional[str] = Field(default="", description="公司名称")
+    address: Optional[str] = Field(default="", description="公司地址")
     contact_person: Optional[str] = Field(default=None, description="联系人")
     phone: Optional[str] = Field(default=None, description="联系电话")
     bank_account: Optional[str] = Field(default=None, description="银行账号")
@@ -47,7 +48,7 @@ class Party(BaseModel):
 class Contract(BaseModel):
     buyer_contract_number: Optional[str] = Field(default=None, description="买方合同编号")
     seller_contract_number: Optional[str] = Field(default=None, description="卖方合同编号")
-    contract_type: str = Field(default="", description="合同类型")
+    contract_type: Optional[str] = Field(default="", description="合同类型")
     project_name: Optional[str] = Field(default=None, description="项目名称")
     sub_project_name: Optional[str] = Field(default=None, description="子项名称")
     buyer: Party = Field(default_factory=Party, description="买方信息")
@@ -206,6 +207,7 @@ def process_files(folder_path, csv_path):
     files = list_files_in_folder(folder_path)
     for file in files:
         if file not in processed_files:
+            logging.info(f"Processing file: {file}")
             process_contact_file(file)
             write_processed_file(csv_path, file)
 
