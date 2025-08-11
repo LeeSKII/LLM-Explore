@@ -10,7 +10,13 @@ import pandas as pd
 import json
 import re
 
-logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s:%(filename)s:%(lineno)d - %(message)s',datefmt='%Y-%m-%d %H:%M:%S',level=logging.INFO) 
+# 使用绝对导入，不知为何相对导入失败
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))
+from src.utils import logger
+
+# logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s:%(filename)s:%(lineno)d - %(message)s',datefmt='%Y-%m-%d %H:%M:%S',level=logging.INFO) 
 
 #------------------ settings ------------------
 import os
@@ -74,7 +80,7 @@ def filter_table_text_from_docs(docx_path)->Tuple[List[str],str]:
     i =>
     """)
     contact_info = mammoth.convert_to_html(docx_path,style_map=style_map,convert_image=mammoth.images.img_element(remove_images),include_default_style_map=False)
-    logging.info(contact_info.value[:100]+'...'+contact_info.value[-100:])
+    logging.info("docx转换成功，数据："+contact_info.value[:100]+'...'+contact_info.value[-100:])
     
     exacted_string = contact_info.value
     
@@ -95,6 +101,8 @@ def run_extract_agent(content)->Contract:
             description="你是一位合同解析AI助手，严格严谨遵守约定，严谨虚构任何用户未提供的合同信息，如果不存在或无法判断，保持空白。",
             response_model=Contract,
             use_json_mode=True,
+            retries=3,
+            telemetry=False,
         )
         response = json_mode_agent.run(message=content)
         logging.info(f"解析结构化数据成功：{response.content.model_dump()}")
@@ -115,6 +123,8 @@ def judge_table_type(contract_info:Contract,table_html:str)->ContractTableJudge:
         instructions=instructions,
         response_model=ContractTableJudge,
         use_json_mode=True,
+        retries=3,
+        telemetry=False,
     ) 
     message=f"用户提供的合同信息：{contract_info.model_dump()}。用户提供的设备表格或清单: {table_html}"
     response = judge_equipment_table_agent.run(message=message)  
@@ -187,6 +197,7 @@ def process_contact_file(file_path):
         if judge_result.is_equipment_table:
             store_data["equipment_table"].append(table_html)    
     
+    logging.info(f"最终解析并存储信息：{store_data}")
     append_to_csv(db_csv_path, store_data)
 
 def process_files(folder_path, csv_path):
